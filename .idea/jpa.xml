@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="JpaBuddyIdeaProjectConfig">
+    <option name="reLastEntityCreationPackage" value="src/main/java/org/example/orcamentototvsjakarta" />
+    <option name="reverseEngineeringLastDbConnectionId" value="54b3a0b2-e81a-467c-8ed6-6612a2020893" />
+  </component>
+  <component name="JpaPluginProjectSettings" isShowLibraryClassesInOrmView="true" />
+</project>

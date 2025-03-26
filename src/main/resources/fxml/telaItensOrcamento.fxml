@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.layout.AnchorPane?>
+
+<AnchorPane xmlns:fx="http://javafx.com/fxml" fx:controller="org.example.orcamentototvsjakarta.TelaItensOrcamentoController">
+    <children>
+        <TableView fx:id="tableItens" layoutX="20" layoutY="20" prefWidth="600" prefHeight="400">
+            <columns>
+                <!-- Exemplo: se o id embutido possui um campo numOrca e talvez codProd -->
+                <TableColumn fx:id="colProduto" text="Produto" prefWidth="200" />
+                <TableColumn fx:id="colQuantidade" text="Quantidade" prefWidth="100" />
+            </columns>
+        </TableView>
+        <Button fx:id="btnVoltar" layoutX="20" layoutY="430" text="Voltar" onAction="#onVoltar"/>
+    </children>
+</AnchorPane>

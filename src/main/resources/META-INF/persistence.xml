@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<persistence xmlns="https://jakarta.ee/xml/ns/persistence"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:schemaLocation="https://jakarta.ee/xml/ns/persistence https://jakarta.ee/xml/ns/persistence/persistence_3_1.xsd"
+             version="3.1">
+
+    <persistence-unit name="default">
+        <provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
+
+        <properties>
+            <!-- Configuração da Conexão com Banco de Dados -->
+<!--            <property name="jakarta.persistence.jdbc.driver" value="oracle.jdbc.OracleDriver"/>-->
+<!--            <property name="jakarta.persistence.jdbc.url" value="jdbc:oracle:thin:@//189.126.152.111/C7QV3X_158012_W_high.paas.oracle.com"/>-->
+<!--            <property name="jakarta.persistence.jdbc.user" value="U_C7QV3X_WI"/>-->
+<!--            <property name="jakarta.persistence.jdbc.password" value="JV17E0023EO4NKU5V3"/>-->
+
+            <property name="jakarta.persistence.jdbc.driver" value="oracle.jdbc.OracleDriver"/>
+            <property name="jakarta.persistence.jdbc.url" value="jdbc:oracle:thin:@//192.168.3.100:1521/LOCAL"/>
+            <property name="jakarta.persistence.jdbc.user" value="GRBDIST"/>
+            <property name="jakarta.persistence.jdbc.password" value="LOCAL"/>
+
+<!--            <property name="jakarta.persistence.jdbc.driver" value="oracle.jdbc.OracleDriver"/>-->
+<!--            <property name="jakarta.persistence.jdbc.url" value="jdbc:oracle:thin:@//10.128.176.250:1524/betel"/>-->
+<!--            <property name="jakarta.persistence.jdbc.user" value="WINTHOR"/>-->
+<!--            <property name="jakarta.persistence.jdbc.password" value="W1TH0B3T3L"/>-->
+
+            <!-- Dialeto do Hibernate para Oracle -->
+            <property name="hibernate.dialect" value="org.hibernate.dialect.OracleDialect"/>
+
+            <property name="hibernate.hikari.minimumIdle" value="5"/>
+            <property name="hibernate.hikari.maximumPoolSize" value="20"/>
+            <property name="hibernate.hikari.idleTimeout" value="30000"/>
+
+
+            <!-- Configuração de Logs -->
+            <property name="hibernate.show_sql" value="true"/>
+            <property name="hibernate.format_sql" value="true"/>
+            <property name="hibernate.use_sql_comments" value="true"/>
+
+
+
+        </properties>
+    </persistence-unit>
+</persistence>

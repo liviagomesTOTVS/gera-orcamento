@@ -1,0 +1,64 @@
+
+
+Version:	3.50
+CmdLine:	C:\Users\livia\OneDrive\Documentos\orcamento-totvs-jakarta-CERTO\orcamento.exe --l4j-debug
+JNI:		No
+WOW64:		Yes
+Working dir:	C:\Users\livia\OneDrive\Documentos\orcamento-totvs-jakarta-CERTO\.
+Requires JDK:	No
+Requires 64-Bit: No
+Java min ver:	1.021.000
+Java max ver:	
+Substitute:	JAVA_HOME = 
+Substitute:	PATH = C:\app\client\livia\product\19.0.0\client_1\bin;C:\app\livia\product\21c\dbhomeXE\bin;C:\Program Files\Common Files\Oracle\Java\javapath;C:\Program Files (x86)\Common Files\Oracle\Java\javapath;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files\NVIDIA Corporation\NVIDIA NvDLISR;C:\Program Files\Git\cmd;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\php8.4.5;C:\composer;C:\laravel;C:\Users\livia\AppData\Roaming\Composer\vendor\bin;C:\apache-maven-3.9.9\bin;C:\Program Files\JetBrains\javafx-sdk-21.0.6\lib;C:\Program Files\JetBrains\javafx-sdk-21.0.6\bin;C:\Users\livia\AppData\Local\Programs\Python\Python310\Scripts\;C:\Users\livia\AppData\Local\Programs\Python\Python310\;C:\Users\livia\AppData\Local\Microsoft\WindowsApps;C:\Users\livia\AppData\Local\Programs\Microsoft VS Code\bin;;C:\Program Files\JetBrains\IntelliJ IDEA Community Edition 2024.3\bin;;C:\Program Files\JetBrains\IntelliJ IDEA 2024.3.2.2\bin;;C:\Users\livia\AppData\Roaming\Composer\vendor\bin;C:\Program Files\Java\jre-1.8\bin
+JRE paths:	;C:\app\client\livia\product\19.0.0\client_1\bin;C:\app\livia\product\21c\dbhomeXE\bin;C:\Program Files\Common Files\Oracle\Java\javapath;C:\Program Files (x86)\Common Files\Oracle\Java\javapath;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files\NVIDIA Corporation\NVIDIA NvDLISR;C:\Program Files\Git\cmd;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\php8.4.5;C:\composer;C:\laravel;C:\Users\livia\AppData\Roaming\Composer\vendor\bin;C:\apache-maven-3.9.9\bin;C:\Program Files\JetBrains\javafx-sdk-21.0.6\lib;C:\Program Files\JetBrains\javafx-sdk-21.0.6\bin;C:\Users\livia\AppData\Local\Programs\Python\Python310\Scripts\;C:\Users\livia\AppData\Local\Programs\Python\Python310\;C:\Users\livia\AppData\Local\Microsoft\WindowsApps;C:\Users\livia\AppData\Local\Programs\Microsoft VS Code\bin;;C:\Program Files\JetBrains\IntelliJ IDEA Community Edition 2024.3\bin;;C:\Program Files\JetBrains\IntelliJ IDEA 2024.3.2.2\bin;;C:\Users\livia\AppData\Roaming\Composer\vendor\bin;C:\Program Files\Java\jre-1.8\bin
+Check launcher:	C:\app\client\livia\product\19.0.0\client_1\bin\javaw.exe (not found)
+Check launcher:	C:\app\livia\product\21c\dbhomeXE\bin\javaw.exe (not found)
+Check launcher:	C:\Program Files\Common Files\Oracle\Java\javapath\bin\javaw.exe (not found)
+Check launcher:	C:\Program Files (x86)\Common Files\Oracle\Java\javapath\bin\javaw.exe (not found)
+Check launcher:	C:\Windows\system32\bin\javaw.exe (not found)
+Check launcher:	C:\Windows\bin\javaw.exe (not found)
+Check launcher:	C:\Windows\System32\Wbem\bin\javaw.exe (not found)
+Check launcher:	C:\Windows\System32\WindowsPowerShell\v1.0\bin\javaw.exe (not found)
+Check launcher:	C:\Windows\System32\OpenSSH\bin\javaw.exe (not found)
+Check launcher:	C:\Program Files\NVIDIA Corporation\NVIDIA NvDLISR\bin\javaw.exe (not found)
+Check launcher:	C:\Program Files\Git\cmd\bin\javaw.exe (not found)
+Check launcher:	C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common\bin\javaw.exe (not found)
+Check launcher:	C:\php8.4.5\bin\javaw.exe (not found)
+Check launcher:	C:\composer\bin\javaw.exe (not found)
+Check launcher:	C:\laravel\bin\javaw.exe (not found)
+Check launcher:	C:\Users\livia\AppData\Roaming\Composer\vendor\bin\javaw.exe (not found)
+Check launcher:	C:\apache-maven-3.9.9\bin\javaw.exe (not found)
+Check launcher:	C:\Program Files\JetBrains\javafx-sdk-21.0.6\lib\bin\javaw.exe (not found)
+Check launcher:	C:\Program Files\JetBrains\javafx-sdk-21.0.6\bin\javaw.exe (not found)
+Check launcher:	C:\Users\livia\AppData\Local\Programs\Python\Python310\Scripts\bin\javaw.exe (not found)
+Check launcher:	C:\Users\livia\AppData\Local\Programs\Python\Python310\bin\javaw.exe (not found)
+Check launcher:	C:\Users\livia\AppData\Local\Microsoft\WindowsApps\bin\javaw.exe (not found)
+Check launcher:	C:\Users\livia\AppData\Local\Programs\Microsoft VS Code\bin\javaw.exe (not found)
+Check launcher:	C:\Program Files\JetBrains\IntelliJ IDEA Community Edition 2024.3\bin\javaw.exe (not found)
+Check launcher:	C:\Program Files\JetBrains\IntelliJ IDEA 2024.3.2.2\bin\javaw.exe (not found)
+Check launcher:	C:\Users\livia\AppData\Roaming\Composer\vendor\bin\javaw.exe (not found)
+Check launcher:	C:\Program Files\Java\jre-1.8\bin\javaw.exe (OK)
+Version string: 1.008.000_401 / 64-Bit (Ignore)
+64-bit search:	SOFTWARE\JavaSoft\Java Runtime Environment...
+Check:		SOFTWARE\JavaSoft\Java Runtime Environment\1.8
+Version string: 1.008.000 / 64-Bit (Ignore)
+Ignore:		1.008.000
+Check:		SOFTWARE\JavaSoft\Java Runtime Environment\1.8.0_401
+Version string: 1.008.000_401 / 64-Bit (Ignore)
+Ignore:		1.008.000_401
+32-bit search:	SOFTWARE\JavaSoft\Java Runtime Environment...
+64-bit search:	SOFTWARE\JavaSoft\Java Development Kit...
+32-bit search:	SOFTWARE\JavaSoft\Java Development Kit...
+64-bit search:	SOFTWARE\JavaSoft\JRE...
+32-bit search:	SOFTWARE\JavaSoft\JRE...
+64-bit search:	SOFTWARE\JavaSoft\JDK...
+Check:		SOFTWARE\JavaSoft\JDK\21.0.2
+Version string: 1.021.000_002 / 64-Bit (OK)
+Check launcher:	C:\Program Files\Java\jdk-21\bin\javaw.exe (OK)
+Match:		1.021.000_002
+Runtime used:	1.021.000_002 (64-bit)
+Launcher:	C:\Program Files\Java\jdk-21\bin\javaw.exe
+Launcher args:	--module-path "C:\javafx-sdk-23.0.2\lib" --add-modules javafx.controls,javafx.fxml -jar "C:\Users\livia\OneDrive\Documentos\orcamento-totvs-jakarta-CERTO\orcamento.exe"
+Args length:	168/32768 chars
+Exit code:	0
