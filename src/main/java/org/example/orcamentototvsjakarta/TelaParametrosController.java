@@ -30,6 +30,7 @@ public class TelaParametrosController extends Application {
     @FXML private TextField txtQtdeMaxItens, txtValorMaxOrcamento;
     @FXML private Button btnAvancar;
     @FXML private TextField tfCliente;
+    @FXML private CheckBox cbCusto, cbVenda;
 
 
     private final PcfilialDAO pcfilialDAO = new PcfilialDAO();
@@ -45,28 +46,7 @@ public class TelaParametrosController extends Application {
 
     @Override
     public void start(Stage primaryStage) throws Exception {
-        FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/telaParametros12.fxml"));
-        Parent root = loader.load();
 
-        primaryStage.initStyle(StageStyle.UNDECORATED);
-        primaryStage.setResizable(false);
-        primaryStage.maximizedProperty().addListener((observable, oldValue, newValue) -> {
-            if (newValue) {
-                primaryStage.setMaximized(false);
-            }
-        });
-
-        Scene scene = new Scene(root);
-        URL cssResource = getClass().getResource("/css/main.css");
-        if (cssResource != null) {
-            scene.getStylesheets().add(cssResource.toExternalForm());
-        } else {
-            System.err.println("Arquivo CSS não encontrado: /css/main.css");
-        }
-
-        primaryStage.setTitle("Parâmetros");
-        primaryStage.setScene(scene);
-        primaryStage.show();
     }
 
 
@@ -94,6 +74,18 @@ public class TelaParametrosController extends Application {
         } catch (Exception e) {
             showAlert("Erro ao carregar cliente padrão: " + e.getMessage(), Alert.AlertType.ERROR);
         }
+
+        cbCusto.setOnAction(event -> {
+            if (cbCusto.isSelected()) {
+                cbVenda.setSelected(false);
+            }
+        });
+
+        cbVenda.setOnAction(event -> {
+            if (cbVenda.isSelected()) {
+                cbCusto.setSelected(false);
+            }
+        });
 
     }
 
