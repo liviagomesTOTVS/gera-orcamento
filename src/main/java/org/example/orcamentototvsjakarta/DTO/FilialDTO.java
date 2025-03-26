@@ -19,7 +19,11 @@ public class FilialDTO {
 
     @Override
     public String toString() {
+        if (codigo == null) {
+            return "Selecione...";
+        }
         return codigo + " - " + razaosocial;
     }
+
 }
 

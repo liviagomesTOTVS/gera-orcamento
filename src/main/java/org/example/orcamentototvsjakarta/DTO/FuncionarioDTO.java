@@ -19,7 +19,9 @@ public class FuncionarioDTO {
 
     @Override
     public String toString() {
+        if (codigo == null) return "Selecione...";
         return codigo + " - " + nome;
     }
+
 }
 

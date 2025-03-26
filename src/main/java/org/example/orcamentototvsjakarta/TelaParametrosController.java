@@ -14,6 +14,8 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import org.example.orcamentototvsjakarta.DTO.ClienteDTO;
+import org.example.orcamentototvsjakarta.DTO.FilialDTO;
+import org.example.orcamentototvsjakarta.DTO.FuncionarioDTO;
 import org.example.orcamentototvsjakarta.db.dao.*;
 import org.example.orcamentototvsjakarta.db.entidade.Pcclient;
 import org.example.orcamentototvsjakarta.model.ParametrosModel;
@@ -26,11 +28,14 @@ import java.util.stream.Collectors;
 
 public class TelaParametrosController extends Application {
 
-    @FXML private ComboBox<String> comboFilial, comboCliente, comboPraca, comboPlanoPagamento, comboCobranca, comboRCA, comboSupervisor, comboRamoAtividade, comboFuncionario, comboCaixa;
+    @FXML private ComboBox<String>  comboCliente, comboPraca, comboPlanoPagamento, comboCobranca, comboRCA, comboSupervisor, comboRamoAtividade, comboCaixa;
     @FXML private TextField txtQtdeMaxItens, txtValorMaxOrcamento;
     @FXML private Button btnAvancar;
     @FXML private TextField tfCliente;
     @FXML private CheckBox cbCusto, cbVenda;
+    @FXML private ComboBox<FilialDTO> comboFilial;
+    @FXML private ComboBox<FuncionarioDTO> comboFuncionario;
+
 
 
     private final PcfilialDAO pcfilialDAO = new PcfilialDAO();
@@ -182,26 +187,31 @@ public class TelaParametrosController extends Application {
         }
     }
 
-
     public void abrirModalPesquisa(ActionEvent actionEvent) {
         onPesquisarCliente();
+    }
+
+    private void carregarComboBoxFilial(ComboBox<FilialDTO> comboBox, List<FilialDTO> valores) {
+        comboBox.setItems(FXCollections.observableArrayList(valores));
+        comboBox.getItems().add(0, new FilialDTO(null, "Selecione..."));
+        comboBox.getSelectionModel().selectFirst();
     }
 
 
     private void carregarDadosFiliais() {
         try {
-            List<String> filiais = pcfilialDAO.buscarTodas().stream()
+            List<FilialDTO> filiais = pcfilialDAO.buscarTodas().stream()
                     .sorted(Comparator.comparing(pcfilial -> pcfilial.getId().getCodigo()))
-                    .map(pcfilial -> pcfilial.getId().getCodigo() + " - " + pcfilial.getRazaosocial())
+                    .map(pcfilial -> new FilialDTO(Integer.valueOf(pcfilial.getId().getCodigo()), pcfilial.getRazaosocial()))
                     .collect(Collectors.toList());
 
-            carregarComboBox(comboFilial, filiais);
+            carregarComboBoxFilial(comboFilial, filiais);
         } catch (Exception e) {
             showAlert("Erro ao carregar filiais: " + e.getMessage(), Alert.AlertType.ERROR);
         }
     }
 
-//    private void carregarDadosRelacionadosCliente() {
+    //    private void carregarDadosRelacionadosCliente() {
 //        String clienteSelecionado = comboCliente.getSelectionModel().getSelectedItem();
 //        //String clienteSelecionado = "2";
 //
@@ -275,15 +285,21 @@ private void carregarDadosRelacionadosCliente(Integer codcli) {
     }
 }
 
+    private void carregarComboBoxFuncionario(ComboBox<FuncionarioDTO> comboBox, List<FuncionarioDTO> valores) {
+        comboBox.setItems(FXCollections.observableArrayList(valores));
+        comboBox.getItems().add(0, new FuncionarioDTO(null, "Selecione..."));
+        comboBox.getSelectionModel().selectFirst();
+    }
+
 
     private void carregarOpcoesFuncionarios() {
         try {
-            List<String> funcionarios = pcemprDAO.listarTodos().stream()
+            List<FuncionarioDTO> funcionarios = pcemprDAO.listarTodos().stream()
                     .sorted(Comparator.comparing(pcempr -> pcempr.getId()))
-                    .map(pcempr -> pcempr.getId() + " - " + pcempr.getNome())
+                    .map(pcempr -> new FuncionarioDTO(pcempr.getId(), pcempr.getNome()))
                     .collect(Collectors.toList());
 
-            carregarComboBox(comboFuncionario, funcionarios);
+            carregarComboBoxFuncionario(comboFuncionario, funcionarios);
         } catch (Exception e) {
             showAlert("Erro ao carregar funcionários: " + e.getMessage(), Alert.AlertType.ERROR);
         }
@@ -407,7 +423,13 @@ private void carregarDadosRelacionadosCliente(Integer codcli) {
 
     private void onAvancar() {
         String clienteSelecionado = clienteSelecionadoManual.toString();
-        String filialSelecionada = getSelectedValue(comboFilial);
+        FilialDTO filialSelecionadaDTO = comboFilial.getSelectionModel().getSelectedItem();
+        if (filialSelecionadaDTO == null || filialSelecionadaDTO.getCodigo() == null) {
+            showAlert("Selecione uma filial antes de continuar!", Alert.AlertType.WARNING);
+            return;
+        }
+        String filialSelecionada = filialSelecionadaDTO.toString(); // ou .getCodigo().toString() se quiser só o código
+
         String rcaSelecionado = getSelectedValue(comboRCA);
 
 

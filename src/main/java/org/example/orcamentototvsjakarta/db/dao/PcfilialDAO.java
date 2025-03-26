@@ -18,7 +18,7 @@ public class PcfilialDAO extends BaseDAO<Pcfilial, String> {
 
     /** Buscar todas as filiais **/
     public List<Pcfilial> buscarTodas() {
-        TypedQuery<Pcfilial> query = entityManager.createQuery("SELECT p FROM Pcfilial p", Pcfilial.class);
+        TypedQuery<Pcfilial> query = entityManager.createQuery("SELECT p FROM Pcfilial p  WHERE p.id.codigo <> '99'", Pcfilial.class);
         return query.getResultList();
     }
 
