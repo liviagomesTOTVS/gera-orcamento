@@ -13,9 +13,7 @@ import javafx.scene.layout.Region;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
-import org.example.orcamentototvsjakarta.DTO.ClienteDTO;
-import org.example.orcamentototvsjakarta.DTO.FilialDTO;
-import org.example.orcamentototvsjakarta.DTO.FuncionarioDTO;
+import org.example.orcamentototvsjakarta.DTO.*;
 import org.example.orcamentototvsjakarta.db.dao.*;
 import org.example.orcamentototvsjakarta.db.entidade.Pcclient;
 import org.example.orcamentototvsjakarta.model.ParametrosModel;
@@ -28,14 +26,15 @@ import java.util.stream.Collectors;
 
 public class TelaParametrosController extends Application {
 
-    @FXML private ComboBox<String>  comboCliente, comboPraca, comboPlanoPagamento, comboCobranca, comboRCA, comboSupervisor, comboRamoAtividade, comboCaixa;
+    @FXML private ComboBox<String>  comboCliente, comboPraca, comboRCA, comboSupervisor, comboRamoAtividade;
     @FXML private TextField txtQtdeMaxItens, txtValorMaxOrcamento;
     @FXML private Button btnAvancar;
     @FXML private TextField tfCliente;
     @FXML private CheckBox cbCusto, cbVenda;
     @FXML private ComboBox<FilialDTO> comboFilial;
     @FXML private ComboBox<FuncionarioDTO> comboFuncionario;
-
+    @FXML private ComboBox<CobrancaDTO> comboCobranca;
+    @FXML private ComboBox<PlanoPagamentoDTO> comboPlanoPagamento;
 
 
     private final PcfilialDAO pcfilialDAO = new PcfilialDAO();
@@ -43,17 +42,14 @@ public class TelaParametrosController extends Application {
     private final PcplpagDAO pcplpagDAO = new PcplpagDAO();
     private final PccobDAO pccobDAO = new PccobDAO();
     private final PcusuariDAO pcusuariDAO = new PcusuariDAO();
-    private final PccaixaDAO pccaixaDAO = new PccaixaDAO();
     private final PcemprDAO pcemprDAO = new PcemprDAO();
     private ClienteDTO clienteSelecionadoManual = null;
-
 
 
     @Override
     public void start(Stage primaryStage) throws Exception {
 
     }
-
 
     @FXML
     public void initialize() {
@@ -99,7 +95,6 @@ public class TelaParametrosController extends Application {
         carregarDadosFiliais();
 
         carregarOpcoesRCA();
-        carregarOpcoesCaixas();
         carregarOpcoesFuncionarios();
 
         comboPraca.setDisable(true);
@@ -306,34 +301,26 @@ private void carregarDadosRelacionadosCliente(Integer codcli) {
     }
 
 
-    private void carregarOpcoesCaixas() {
-        try {
-            List<String> caixas = pccaixaDAO.buscarTodos().stream()
-                    .sorted(Comparator.comparing(pccaixa -> pccaixa.getId()))
-                    .map(pccaixa -> pccaixa.getId() + " - " + pccaixa.getDescricao())
-                    .collect(Collectors.toList());
-
-            carregarComboBox(comboCaixa, caixas);
-        } catch (Exception e) {
-            showAlert("Erro ao carregar caixas: " + e.getMessage(), Alert.AlertType.ERROR);
-        }
+    private void carregarComboBoxCobranca(ComboBox<CobrancaDTO> comboBox, List<CobrancaDTO> valores) {
+        comboBox.setItems(FXCollections.observableArrayList(valores));
+        comboBox.getItems().add(0, new CobrancaDTO(null, "Selecione..."));
+        comboBox.getSelectionModel().selectFirst();
     }
 
 
     private void carregarOpcoesCobranca(String codCobrancaCliente) {
         try {
-            List<String> cobrancas = pccobDAO.buscarTodos().stream()
+            List<CobrancaDTO> cobrancas = pccobDAO.buscarTodos().stream()
                     .sorted(Comparator.comparing(pccob -> pccob.getCodcob()))
-                    .map(pccob -> pccob.getCodcob() + " - " + pccob.getCobranca())
+                    .map(pccob -> new CobrancaDTO(pccob.getCodcob(), pccob.getCobranca()))
                     .collect(Collectors.toList());
 
-            carregarComboBox(comboCobranca, cobrancas);
+            carregarComboBoxCobranca(comboCobranca, cobrancas);
 
-            // Definir o valor padrão se aplicável
             if (codCobrancaCliente != null) {
-                for (String cobranca : cobrancas) {
-                    if (cobranca.startsWith(codCobrancaCliente + " -")) {
-                        comboCobranca.setValue(cobranca);
+                for (CobrancaDTO dto : cobrancas) {
+                    if (dto.getCodigo().equals(codCobrancaCliente)) {
+                        comboCobranca.getSelectionModel().select(dto);
                         break;
                     }
                 }
@@ -343,22 +330,26 @@ private void carregarDadosRelacionadosCliente(Integer codcli) {
         }
     }
 
+    private void carregarComboBoxPlanoPagamento(ComboBox<PlanoPagamentoDTO> comboBox, List<PlanoPagamentoDTO> valores) {
+        comboBox.setItems(FXCollections.observableArrayList(valores));
+        comboBox.getItems().add(0, new PlanoPagamentoDTO(null, "Selecione..."));
+        comboBox.getSelectionModel().selectFirst();
+    }
+
 
     private void carregarOpcoesPlanoPagamento(Integer codPlanoPagamentoCliente) {
         try {
-            List<String> planos = pcplpagDAO.buscarTodos().stream()
+            List<PlanoPagamentoDTO> planos = pcplpagDAO.buscarTodos().stream()
                     .sorted(Comparator.comparing(pcplpag -> pcplpag.getId()))
-                    .map(pcplpag -> pcplpag.getId() + " - " + pcplpag.getDescricao())
+                    .map(pcplpag -> new PlanoPagamentoDTO(Integer.valueOf(pcplpag.getId()), pcplpag.getDescricao()))
                     .collect(Collectors.toList());
 
-            carregarComboBox(comboPlanoPagamento, planos);
+            carregarComboBoxPlanoPagamento(comboPlanoPagamento, planos);
 
-
-            // Definir o valor padrão se aplicável
             if (codPlanoPagamentoCliente != null) {
-                for (String plano : planos) {
-                    if (plano.startsWith(codPlanoPagamentoCliente + " -")) {
-                        comboPlanoPagamento.setValue(plano);
+                for (PlanoPagamentoDTO dto : planos) {
+                    if (dto.getCodigo().equals(codPlanoPagamentoCliente)) {
+                        comboPlanoPagamento.getSelectionModel().select(dto);
                         break;
                     }
                 }
@@ -456,8 +447,16 @@ private void carregarDadosRelacionadosCliente(Integer codcli) {
         }
 
         String pracaSelecionada = getSelectedValue(comboPraca);
-        String planoPagamentoSelecionado = getSelectedValue(comboPlanoPagamento);
-        String cobrancaSelecionada = getSelectedValue(comboCobranca);
+        PlanoPagamentoDTO planoSelecionadoDTO = comboPlanoPagamento.getSelectionModel().getSelectedItem();
+        String planoPagamentoSelecionado = (planoSelecionadoDTO != null && planoSelecionadoDTO.getCodigo() != null)
+                ? planoSelecionadoDTO.getCodigo().toString()
+                : null;
+
+        CobrancaDTO cobrancaSelecionadaDTO = comboCobranca.getSelectionModel().getSelectedItem();
+        String cobrancaSelecionada = (cobrancaSelecionadaDTO != null && cobrancaSelecionadaDTO.getCodigo() != null)
+                ? cobrancaSelecionadaDTO.getCodigo()
+                : null;
+
         String supervisorSelecionado = getSelectedValue(comboSupervisor);
 
         // Criando objeto de parâmetros para passar à próxima tela

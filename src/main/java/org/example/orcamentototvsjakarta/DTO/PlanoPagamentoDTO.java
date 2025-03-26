@@ -19,7 +19,7 @@ public class PlanoPagamentoDTO {
 
     @Override
     public String toString() {
-        return codigo + " - " + descricao;
+        return (codigo == null) ? "Selecione..." : codigo + " - " + descricao;
     }
 }
 
