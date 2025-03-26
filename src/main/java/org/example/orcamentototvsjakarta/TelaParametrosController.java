@@ -13,6 +13,7 @@ import javafx.scene.layout.Region;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
+import org.example.orcamentototvsjakarta.DTO.ClienteDTO;
 import org.example.orcamentototvsjakarta.db.dao.*;
 import org.example.orcamentototvsjakarta.db.entidade.Pcclient;
 import org.example.orcamentototvsjakarta.model.ParametrosModel;
@@ -38,7 +39,8 @@ public class TelaParametrosController extends Application {
     private final PcusuariDAO pcusuariDAO = new PcusuariDAO();
     private final PccaixaDAO pccaixaDAO = new PccaixaDAO();
     private final PcemprDAO pcemprDAO = new PcemprDAO();
-    private Pcclient clienteSelecionadoManual = null;
+    private ClienteDTO clienteSelecionadoManual = null;
+
 
 
     @Override
@@ -83,11 +85,11 @@ public class TelaParametrosController extends Application {
         });
 
         try {
-            Pcclient clienteDefault = pcclientDAO.buscarPorCodigo(2);
+            ClienteDTO clienteDefault = pcclientDAO.buscarDTOporCodigo(2);
             if (clienteDefault != null) {
                 clienteSelecionadoManual = clienteDefault;
-                tfCliente.setText(clienteDefault.getId().getCodcli() + " - " + clienteDefault.getCliente());
-                carregarDadosRelacionadosCliente(clienteDefault);
+                tfCliente.setText(clienteDefault.toString());
+                carregarDadosRelacionadosCliente(clienteDefault.getCodcli());
             }
         } catch (Exception e) {
             showAlert("Erro ao carregar cliente padrão: " + e.getMessage(), Alert.AlertType.ERROR);
@@ -148,9 +150,9 @@ public class TelaParametrosController extends Application {
 
         Pcclient clienteSelecionado = modal.getSelecionado();
         if (clienteSelecionado != null) {
-            clienteSelecionadoManual = clienteSelecionado;
-            tfCliente.setText(clienteSelecionado.getId().getCodcli() + " - " + clienteSelecionado.getCliente());
-            carregarDadosRelacionadosCliente(clienteSelecionadoManual);
+            clienteSelecionadoManual = new ClienteDTO(clienteSelecionado.getId().getCodcli(), clienteSelecionado.getCliente());
+            tfCliente.setText(clienteSelecionadoManual.toString());
+            carregarDadosRelacionadosCliente(clienteSelecionadoManual.getCodcli());
         }
     }
 
@@ -164,12 +166,13 @@ public class TelaParametrosController extends Application {
 
         try {
             Integer codcli = Integer.parseInt(texto.replaceAll("[^0-9]", ""));
-            Pcclient cliente = pcclientDAO.buscarPorCodigo(codcli);
+            ClienteDTO cliente = pcclientDAO.buscarDTOporCodigo(codcli);
+
 
             if (cliente != null) {
                 clienteSelecionadoManual = cliente;
-                tfCliente.setText(cliente.getId().getCodcli() + " - " + cliente.getCliente());
-                carregarDadosRelacionadosCliente(clienteSelecionadoManual);
+                tfCliente.setText(cliente.toString());
+                carregarDadosRelacionadosCliente(cliente.getCodcli());
             } else {
                 showAlert("Cliente não encontrado para o código informado!", Alert.AlertType.WARNING);
                 tfCliente.clear();
@@ -246,8 +249,8 @@ public class TelaParametrosController extends Application {
 //            showAlert("Erro ao carregar dados do cliente: " + e.getMessage(), Alert.AlertType.ERROR);
 //        }
 //    }
-private void carregarDadosRelacionadosCliente(Pcclient cliente) {
-    if (cliente == null) {
+private void carregarDadosRelacionadosCliente(Integer codcli) {
+    if (codcli == null) {
         comboPraca.setValue(null);
         comboRamoAtividade.setValue(null);
         comboPlanoPagamento.getSelectionModel().clearSelection();
@@ -261,21 +264,20 @@ private void carregarDadosRelacionadosCliente(Pcclient cliente) {
     comboCobranca.setDisable(false);
 
     try {
-        Integer codcli = cliente.getId().getCodcli();
-
         Integer codPraca = pcclientDAO.buscarPracaPorCliente(codcli);
-        Integer codRamoAtividade = pcclientDAO.buscarRamoAtividadePorCliente(codcli);
-        Short codPlanoPagamento = pcclientDAO.buscarPlanoPagamentoPorCliente(codcli);
+        Integer codRamo = pcclientDAO.buscarRamoAtividadePorCliente(codcli);
+        Short codPlano = pcclientDAO.buscarPlanoPagamentoPorCliente(codcli);
         String codCobranca = pcclientDAO.buscarCobrancaPorCliente(codcli);
 
         comboPraca.setValue(codPraca != null ? codPraca.toString() : "Não informado");
-        comboRamoAtividade.setValue(codRamoAtividade != null ? codRamoAtividade.toString() : "Não informado");
+        comboRamoAtividade.setValue(codRamo != null ? codRamo.toString() : "Não informado");
 
         carregarOpcoesCobranca(codCobranca);
-        carregarOpcoesPlanoPagamento(codPlanoPagamento != null ? codPlanoPagamento.intValue() : null);
+        carregarOpcoesPlanoPagamento(codPlano != null ? codPlano.intValue() : null);
 
         comboPraca.setDisable(true);
         comboRamoAtividade.setDisable(true);
+
     } catch (Exception e) {
         showAlert("Erro ao carregar dados do cliente: " + e.getMessage(), Alert.AlertType.ERROR);
     }
@@ -412,7 +414,7 @@ private void carregarDadosRelacionadosCliente(Pcclient cliente) {
     }
 
     private void onAvancar() {
-        String clienteSelecionado = clienteSelecionadoManual.getId().getCodcli() + " - " + clienteSelecionadoManual.getCliente();
+        String clienteSelecionado = clienteSelecionadoManual.toString();
         String filialSelecionada = getSelectedValue(comboFilial);
         String rcaSelecionado = getSelectedValue(comboRCA);
 

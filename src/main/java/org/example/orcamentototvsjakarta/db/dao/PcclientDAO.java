@@ -1,6 +1,7 @@
 package org.example.orcamentototvsjakarta.db.dao;
 
 import jakarta.persistence.*;
+import org.example.orcamentototvsjakarta.DTO.ClienteDTO;
 import org.example.orcamentototvsjakarta.db.entidade.Pcclient;
 
 import java.util.List;
@@ -163,6 +164,13 @@ public class PcclientDAO extends BaseDAO<Pcclient, Short>{
         }
     }
 
+    public ClienteDTO buscarDTOporCodigo(Integer codcli) {
+        Pcclient cliente = buscarPorCodigo(codcli);
+        if (cliente != null) {
+            return new ClienteDTO(cliente.getId().getCodcli(), cliente.getCliente());
+        }
+        return null;
+    }
 
 
 }
