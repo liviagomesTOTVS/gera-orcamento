@@ -82,7 +82,7 @@ public class Pcorcavendai {
     private BigDecimal pvendabase;
 
     @Column(name = "CODST")
-    private Short codst;
+    private Integer codst;
 
     @Column(name = "IVA", precision = 8, scale = 4)
     private BigDecimal iva;
@@ -1039,11 +1039,11 @@ public class Pcorcavendai {
         this.pvendabase = pvendabase;
     }
 
-    public Short getCodst() {
+    public Integer getCodst() {
         return codst;
     }
 
-    public void setCodst(Short codst) {
+    public void setCodst(Integer codst) {
         this.codst = codst;
     }
 

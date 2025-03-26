@@ -14,8 +14,9 @@
                 <TableColumn fx:id="colValorTotal" text="Valor Total" prefWidth="150"/>
                 <TableColumn fx:id="colCliente" text="Cliente" prefWidth="100"/>
                 <TableColumn fx:id="colUsuario" text="Usuário" prefWidth="100"/>
+                <TableColumn fx:id="colDesconto" text="Desconto" prefWidth="100"/>
             </columns>
         </TableView>
-        <Button fx:id="btnVoltar" layoutX="20" layoutY="430" text="Voltar" onAction="#onVoltar"/>
+        <Button fx:id="btnVoltar" layoutX="20" layoutY="430" text="Sair" onAction="#onVoltar"/>
     </children>
 </AnchorPane>

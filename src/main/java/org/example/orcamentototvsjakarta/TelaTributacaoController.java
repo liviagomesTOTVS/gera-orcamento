@@ -59,9 +59,6 @@ public class TelaTributacaoController {
 
     @FXML
     public void initialize() {
-        Stage stage = new Stage();
-        stage.initStyle(StageStyle.UNDECORATED);
-        stage.show();
         listTributacoes.setItems(tributacoes);
 
         listTributacoes.setCellFactory(param -> new ListCell<>() {
@@ -417,6 +414,7 @@ public class TelaTributacaoController {
                 controller.setNumorcasGerados(numorcasGerados);
 
                 Stage stage = (Stage) btnProximo.getScene().getWindow();
+                //stage.initStyle(StageStyle.UNDECORATED);
                 stage.setScene(new Scene(root));
             } catch (IOException e) {
                 showAlert("Erro ao carregar a tela de orçamentos: " + e.getMessage(), Alert.AlertType.ERROR);
@@ -440,8 +438,14 @@ public class TelaTributacaoController {
             // Passar os parâmetros corretamente ao voltar
             controller.setParametrosModel(parametrosModel);
 
-            Stage stage = (Stage) btnAnterior.getScene().getWindow();
-            stage.setScene(new Scene(root));
+            Stage novaJanela = new Stage();
+            novaJanela.setTitle("Departamentos");
+            novaJanela.setScene(new Scene(root));
+            //novaJanela.initStyle(StageStyle.UNDECORATED);
+            novaJanela.show();
+
+            Stage janelaAtual = (Stage) btnAnterior.getScene().getWindow();
+            janelaAtual.close();
         } catch (IOException e) {
             showAlert("Erro ao carregar a tela de departamentos!", Alert.AlertType.ERROR);
         }

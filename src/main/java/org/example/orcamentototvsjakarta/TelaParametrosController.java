@@ -81,6 +81,18 @@ public class TelaParametrosController extends Application {
                 buscarClientePorCodigoDigitado();
             }
         });
+
+        try {
+            Pcclient clienteDefault = pcclientDAO.buscarPorCodigo(2);
+            if (clienteDefault != null) {
+                clienteSelecionadoManual = clienteDefault;
+                tfCliente.setText(clienteDefault.getId().getCodcli() + " - " + clienteDefault.getCliente());
+                carregarDadosRelacionadosCliente(clienteDefault);
+            }
+        } catch (Exception e) {
+            showAlert("Erro ao carregar cliente padrão: " + e.getMessage(), Alert.AlertType.ERROR);
+        }
+
     }
 
     private void carregarDados() {
@@ -457,9 +469,11 @@ private void carregarDadosRelacionadosCliente(Pcclient cliente) {
             Stage stage = new Stage();
             stage.setTitle("Departamentos");
             stage.setScene(new Scene(root));
+            stage.initStyle(StageStyle.UNDECORATED);
             stage.show();
 
             ((Stage) btnAvancar.getScene().getWindow()).close();
+
 
         } catch (Exception e) {
             showAlert("Erro ao carregar próxima tela: " + e.getMessage(), Alert.AlertType.ERROR);

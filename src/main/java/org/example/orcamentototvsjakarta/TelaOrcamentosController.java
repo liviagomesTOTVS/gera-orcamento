@@ -36,6 +36,9 @@ public class TelaOrcamentosController {
     private TableColumn<OrcamentoModel, Integer> colCliente;
     @FXML
     private TableColumn<OrcamentoModel, Short> colUsuario;
+    @FXML
+    private TableColumn<OrcamentoModel, BigDecimal> colDesconto;
+
 
     private ObservableList<OrcamentoModel> orcamentos = FXCollections.observableArrayList();
 
@@ -49,6 +52,8 @@ public class TelaOrcamentosController {
         colValorTotal.setCellValueFactory(new PropertyValueFactory<>("vltotal"));
         colCliente.setCellValueFactory(new PropertyValueFactory<>("codcli"));
         colUsuario.setCellValueFactory(new PropertyValueFactory<>("codusur"));
+        colDesconto.setCellValueFactory(new PropertyValueFactory<>("vldesconto"));
+
 
         carregarOrcamentos();
 
@@ -70,7 +75,7 @@ public class TelaOrcamentosController {
         try {
             List<Pcorcavendac> resultados = em.createQuery("SELECT o FROM Pcorcavendac o", Pcorcavendac.class).getResultList();
             for (Pcorcavendac o : resultados) {
-                orcamentos.add(new OrcamentoModel(o.getId(), o.getData(), o.getVltotal(), o.getCodcli(), o.getCodusur()));
+                orcamentos.add(new OrcamentoModel(o.getId(), o.getData(), o.getVltotal(), o.getCodcli(), o.getCodusur(), o.getVldesconto()));
             }
             tableOrcamentos.setItems(orcamentos);
         } catch (Exception ex) {
@@ -122,7 +127,7 @@ public class TelaOrcamentosController {
 
             orcamentos.clear();
             for (Pcorcavendac o : resultados) {
-                orcamentos.add(new OrcamentoModel(o.getId(), o.getData(), o.getVltotal(), o.getCodcli(), o.getCodusur()));
+                orcamentos.add(new OrcamentoModel(o.getId(), o.getData(), o.getVltotal(), o.getCodcli(), o.getCodusur(),o.getVldesconto()));
             }
             tableOrcamentos.setItems(orcamentos);
         } catch (Exception ex) {

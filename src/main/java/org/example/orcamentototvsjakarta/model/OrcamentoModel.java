@@ -9,13 +9,16 @@ public class OrcamentoModel {
     private BigDecimal vltotal;
     private Integer codcli;
     private Short codusur;
+    private BigDecimal vldesconto;
 
-    public OrcamentoModel(Long id, LocalDate data, BigDecimal vltotal, Integer codcli, Short codusur) {
+
+    public OrcamentoModel(Long id, LocalDate data, BigDecimal vltotal, Integer codcli, Short codusur, BigDecimal vldesconto) {
         this.id = id;
         this.data = data;
         this.vltotal = vltotal;
         this.codcli = codcli;
         this.codusur = codusur;
+        this.vldesconto = vldesconto;
     }
 
     // Getters e setters
@@ -57,6 +60,10 @@ public class OrcamentoModel {
 
     public void setCodusur(Short codusur) {
         this.codusur = codusur;
+    }
+
+    public BigDecimal getVldesconto() {
+        return vldesconto;
     }
 }
 

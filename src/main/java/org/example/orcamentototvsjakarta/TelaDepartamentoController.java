@@ -46,9 +46,6 @@ public class TelaDepartamentoController {
 
     @FXML
     public void initialize() {
-        Stage stage = new Stage();
-        stage.initStyle(StageStyle.UNDECORATED);
-        stage.show();
         carregarDepartamentos();
         listDepartamentos.setItems(departamentos);
 
@@ -152,6 +149,7 @@ public class TelaDepartamentoController {
             Stage stage = new Stage();
             stage.setTitle("Tributação");
             stage.setScene(new Scene(root));
+            stage.initStyle(StageStyle.UNDECORATED);
             stage.show();
 
             ((Stage) btnProximo.getScene().getWindow()).close();
@@ -165,8 +163,15 @@ public class TelaDepartamentoController {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/telaParametros12.fxml"));
             Parent root = loader.load();
-            Stage stage = (Stage) btnAnterior.getScene().getWindow();
-            stage.setScene(new Scene(root));
+            Stage novaJanela = new Stage();
+            novaJanela.setTitle("Parâmetros");
+            novaJanela.setScene(new Scene(root));
+            novaJanela.initStyle(StageStyle.UNDECORATED);
+            novaJanela.show();
+
+            // Fecha a janela atual
+            Stage janelaAtual = (Stage) btnAnterior.getScene().getWindow();
+            janelaAtual.close();
         } catch (IOException e) {
             showAlert("Erro ao carregar a tela de parâmetros!", Alert.AlertType.ERROR);
         }

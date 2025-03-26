@@ -302,6 +302,49 @@
                     <Cursor fx:constant="TEXT" />
                 </cursor>
             </TextField>
+            <!-- Tipo de Preço -->
+            <Label text="Tipo de Preço:" GridPane.rowIndex="14">
+                <font>
+                    <Font name="Arial" size="15.0" />
+                </font>
+                <padding>
+                    <Insets right="10.0" />
+                </padding>
+            </Label>
+            <HBox spacing="10" GridPane.columnIndex="1" GridPane.rowIndex="14">
+                <children>
+                    <CheckBox fx:id="cbPrecoCusto" text="Custo" />
+                    <CheckBox fx:id="cbPrecoVenda" text="Venda" />
+                </children>
+            </HBox>
+
+<!--            &lt;!&ndash; Percentual &ndash;&gt;-->
+<!--            <Label text="Percentual %:" GridPane.rowIndex="15">-->
+<!--                <font>-->
+<!--                    <Font name="Arial" size="15.0" />-->
+<!--                </font>-->
+<!--                <padding>-->
+<!--                    <Insets right="10.0" />-->
+<!--                </padding>-->
+<!--            </Label>-->
+<!--            <TextField fx:id="txtPercentual" prefWidth="100.0" GridPane.columnIndex="1" GridPane.rowIndex="15" />-->
+
+<!--            &lt;!&ndash; Tipo de Venda &ndash;&gt;-->
+<!--            <Label text="Tipo de Venda:" GridPane.rowIndex="16">-->
+<!--                <font>-->
+<!--                    <Font name="Arial" size="15.0" />-->
+<!--                </font>-->
+<!--                <padding>-->
+<!--                    <Insets right="10.0" />-->
+<!--                </padding>-->
+<!--            </Label>-->
+<!--            <HBox spacing="10" GridPane.columnIndex="1" GridPane.rowIndex="16">-->
+<!--                <children>-->
+<!--                    <CheckBox fx:id="cbBoleto" text="Boleto" />-->
+<!--                    <CheckBox fx:id="cbPix" text="Pix" />-->
+<!--                    <CheckBox fx:id="cbCartao" text="Cartão" />-->
+<!--                </children>-->
+<!--            </HBox>-->
             <Button fx:id="btnAvancar" prefHeight="44.0" prefWidth="153.0" style="-fx-background-color: #0041a6; -fx-border-radius: 10px;" styleClass="btnAvancar" stylesheets="@orcamento-totvs-jakarta-CERTO/orcamento-totvs-jakarta-CERTO/src/main/resources/fxml/styles.css" text="Próximo &gt;" textFill="WHITE" GridPane.columnIndex="9" GridPane.columnSpan="3" GridPane.rowIndex="19">
                 <GridPane.margin>
                     <Insets right="40.0" />
