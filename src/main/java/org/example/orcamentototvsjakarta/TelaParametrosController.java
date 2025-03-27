@@ -30,7 +30,7 @@ public class TelaParametrosController extends Application {
     @FXML private TextField txtQtdeMaxItens, txtValorMaxOrcamento;
     @FXML private Button btnAvancar;
     @FXML private TextField tfCliente;
-    @FXML private CheckBox cbCusto, cbVenda;
+    @FXML private CheckBox cbPrecoCusto, cbPrecoVenda;
     @FXML private ComboBox<FilialDTO> comboFilial;
     @FXML private ComboBox<FuncionarioDTO> comboFuncionario;
     @FXML private ComboBox<CobrancaDTO> comboCobranca;
@@ -76,15 +76,15 @@ public class TelaParametrosController extends Application {
             showAlert("Erro ao carregar cliente padrão: " + e.getMessage(), Alert.AlertType.ERROR);
         }
 
-        cbCusto.setOnAction(event -> {
-            if (cbCusto.isSelected()) {
-                cbVenda.setSelected(false);
+        cbPrecoCusto.setOnAction(event -> {
+            if (cbPrecoCusto.isSelected()) {
+                cbPrecoVenda.setSelected(false);
             }
         });
 
-        cbVenda.setOnAction(event -> {
-            if (cbVenda.isSelected()) {
-                cbCusto.setSelected(false);
+        cbPrecoVenda.setOnAction(event -> {
+            if (cbPrecoVenda.isSelected()) {
+                cbPrecoCusto.setSelected(false);
             }
         });
 
@@ -413,6 +413,14 @@ private void carregarDadosRelacionadosCliente(Integer codcli) {
     }
 
     private void onAvancar() {
+        if (clienteSelecionadoManual == null) {
+            showAlert("Selecione um cliente antes de continuar!", Alert.AlertType.WARNING);
+            return;
+        }
+
+
+
+
         String clienteSelecionado = clienteSelecionadoManual.toString();
         FilialDTO filialSelecionadaDTO = comboFilial.getSelectionModel().getSelectedItem();
         if (filialSelecionadaDTO == null || filialSelecionadaDTO.getCodigo() == null) {
@@ -422,12 +430,6 @@ private void carregarDadosRelacionadosCliente(Integer codcli) {
         String filialSelecionada = filialSelecionadaDTO.toString(); // ou .getCodigo().toString() se quiser só o código
 
         String rcaSelecionado = getSelectedValue(comboRCA);
-
-
-        if (clienteSelecionadoManual == null) {
-            showAlert("Selecione um cliente antes de continuar!", Alert.AlertType.WARNING);
-            return;
-        }
 
 
         if (filialSelecionada == null) {
@@ -550,7 +552,5 @@ private void carregarDadosRelacionadosCliente(Integer codcli) {
         Stage stage = (Stage) ((Node) actionEvent.getSource()).getScene().getWindow();
         stage.setIconified(true);
     }
-
-
 
 }
