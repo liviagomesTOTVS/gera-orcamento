@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import javafx.geometry.Insets?>
 <?import javafx.scene.Cursor?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
@@ -10,9 +11,9 @@
 <?import javafx.scene.text.Font?>
 <?import javafx.scene.text.Text?>
 
-<AnchorPane prefHeight="655.0" prefWidth="857.0" xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/23.0.1" fx:controller="org.example.orcamentototvsjakarta.TelaOrcamentosController">
+<AnchorPane prefHeight="655.0" prefWidth="857.0" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.example.orcamentototvsjakarta.TelaOrcamentosController">
     <children>
-        <TableView fx:id="tableOrcamentos" layoutX="-2.0" layoutY="59.0" prefHeight="545.0" prefWidth="863.0">
+        <TableView fx:id="tableOrcamentos" layoutX="-2.0" layoutY="59.0" prefHeight="545.0" prefWidth="863.0" AnchorPane.bottomAnchor="60.0" AnchorPane.topAnchor="58.0">
             <columns>
                 <TableColumn fx:id="colNumero" prefWidth="131.0" style="-fx-font-family: arial;" text="Número Orçamento" />
                 <TableColumn fx:id="colData" prefWidth="119.0" style="-fx-font-family: arial;" text="Data" />
@@ -21,6 +22,9 @@
                 <TableColumn fx:id="colUsuario" prefWidth="100" style="-fx-font-family: arial;" text="Usuário" />
                 <TableColumn fx:id="colDesconto" prefWidth="100" style="-fx-font-family: arial;" text="Desconto" />
             </columns>
+         <padding>
+            <Insets bottom="15.0" />
+         </padding>
         </TableView>
         <Button fx:id="btnVoltar" alignment="CENTER" contentDisplay="CENTER" layoutX="767.0" layoutY="611.0" onAction="#onVoltar" prefHeight="30.0" prefWidth="80.0" style="-fx-background-color: #0041a6; -fx-text-fill: white;" text="Sair">
          <font>

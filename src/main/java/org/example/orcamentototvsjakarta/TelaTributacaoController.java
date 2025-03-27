@@ -325,7 +325,17 @@ public class TelaTributacaoController {
                     .setParameter("filial", filialCode)
                     .getResultList();
 
+
+            System.out.println("Cliente: " + parametrosModel.getCliente());
+
             System.out.println("Produtos encontrados: " + results.size());
+
+            if (results.isEmpty()) {
+                System.out.println("⚠️ Nenhum produto retornado para o cliente " + codcli + " com plano " + planoPagamento + ", filial " + filialCode);
+                showAlert("Nenhum produto foi selecionado para este cliente.\nVerifique se ele possui produtos ativos com estoque e tributação válida.", Alert.AlertType.WARNING);
+                return;
+            }
+
 
 // Construir a string de produtos no formato esperado
             StringBuilder produtosConcatenados = new StringBuilder();

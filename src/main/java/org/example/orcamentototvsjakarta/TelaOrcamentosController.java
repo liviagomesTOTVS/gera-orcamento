@@ -6,6 +6,7 @@ import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
@@ -21,6 +22,10 @@ import java.util.ArrayList;
 import java.util.List;
 import org.example.orcamentototvsjakarta.model.OrcamentoModel;
 import org.example.orcamentototvsjakarta.db.entidade.Pcorcavendac;
+import java.text.NumberFormat;
+import java.time.format.DateTimeFormatter;
+import java.util.Locale;
+
 
 public class TelaOrcamentosController {
 
@@ -54,6 +59,35 @@ public class TelaOrcamentosController {
         colUsuario.setCellValueFactory(new PropertyValueFactory<>("codusur"));
         colDesconto.setCellValueFactory(new PropertyValueFactory<>("vldesconto"));
 
+        NumberFormat currencyFormat = NumberFormat.getCurrencyInstance(new Locale("pt", "BR"));
+        DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+
+        // Máscara de valor monetário - colValorTotal
+                colValorTotal.setCellFactory(column -> new TableCell<>() {
+                    @Override
+                    protected void updateItem(BigDecimal value, boolean empty) {
+                        super.updateItem(value, empty);
+                        setText((empty || value == null) ? null : currencyFormat.format(value));
+                    }
+                });
+
+        // Máscara de valor monetário - colDesconto
+                colDesconto.setCellFactory(column -> new TableCell<>() {
+                    @Override
+                    protected void updateItem(BigDecimal value, boolean empty) {
+                        super.updateItem(value, empty);
+                        setText((empty || value == null) ? null : currencyFormat.format(value));
+                    }
+                });
+
+        // Máscara de data - colData
+                colData.setCellFactory(column -> new TableCell<>() {
+                    @Override
+                    protected void updateItem(LocalDate date, boolean empty) {
+                        super.updateItem(date, empty);
+                        setText((empty || date == null) ? null : date.format(dateFormatter));
+                    }
+                });
 
         carregarOrcamentos();
 

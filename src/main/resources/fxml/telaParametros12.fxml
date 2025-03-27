@@ -17,11 +17,11 @@
 <?import javafx.scene.text.Font?>
 <?import javafx.scene.text.Text?>
 
-<BorderPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="711.0" prefWidth="1089.0" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.example.orcamentototvsjakarta.TelaParametrosController">
+<BorderPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="755.0" prefWidth="1089.0" style="-fx-background-color: white;" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.example.orcamentototvsjakarta.TelaParametrosController">
    <left>
-      <Pane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="60.0" prefWidth="1096.0" style="-fx-background-color: #0041a6;" BorderPane.alignment="TOP_CENTER">
+      <Pane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="69.0" prefWidth="1086.0" style="-fx-background-color: #0041a6;" BorderPane.alignment="TOP_CENTER">
          <children>
-                <HBox alignment="CENTER_RIGHT" layoutX="955.0" layoutY="-10.0" prefHeight="79.0" prefWidth="142.0" style="-fx-padding: 5; -fx-background-color: #0041a6;">
+                <HBox alignment="CENTER_RIGHT" layoutX="955.0" layoutY="-10.0" prefHeight="79.0" prefWidth="135.0" style="-fx-padding: 5; -fx-background-color: #0041a6;">
                     <Label style="-fx-text-fill: white; -fx-font-size: 16px;" />
                     <Button alignment="CENTER" contentDisplay="CENTER" maxHeight="-Infinity" maxWidth="-Infinity" minWidth="-Infinity" onAction="#minimizeWindow" prefHeight="46.0" prefWidth="64.0" snapToPixel="false" style="-fx-background-color: #0041a6; -fx-text-fill: white;" text="-" textFill="RED">
                   <font>
@@ -49,9 +49,9 @@
       </Pane>
    </left>
    <bottom>
-      <Pane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="652.0" prefWidth="1103.0" style="-fx-background-color: fff;" BorderPane.alignment="CENTER">
+      <Pane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="652.0" prefWidth="1086.0" style="-fx-background-color: fff;" BorderPane.alignment="CENTER">
          <children>
-              <GridPane alignment="BASELINE_CENTER" layoutX="6.0" layoutY="-2.0" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="662.0" prefWidth="1097.0" styleClass="teste">
+              <GridPane alignment="BASELINE_CENTER" layoutX="7.0" layoutY="-37.0" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="711.0" prefWidth="1081.0" styleClass="teste">
                   <Label alignment="CENTER_RIGHT" prefHeight="17.0" prefWidth="334.0" text="Filial:" GridPane.rowIndex="2">
                       <GridPane.margin>
                           <Insets />
@@ -283,7 +283,7 @@
                       </cursor>
                   </TextField>
                   <!-- Tipo de Preço -->
-                  <Label alignment="CENTER_RIGHT" minHeight="-Infinity" minWidth="-Infinity" prefHeight="17.0" prefWidth="329.0" text="Tipo de Preço:" GridPane.rowIndex="12">
+                  <Label alignment="CENTER_RIGHT" minHeight="-Infinity" minWidth="-Infinity" prefHeight="17.0" prefWidth="329.0" text="Tipo de Preço:" GridPane.rowIndex="13">
                       <font>
                           <Font name="Arial" size="15.0" />
                       </font>
@@ -291,12 +291,12 @@
                           <Insets right="10.0" />
                       </padding>
                   </Label>
-                    <CheckBox fx:id="cbPrecoCusto" text="Custo" GridPane.columnIndex="1" GridPane.rowIndex="12">
+                    <CheckBox fx:id="cbPrecoCusto" text="Custo" GridPane.columnIndex="1" GridPane.rowIndex="13">
                   <font>
                      <Font name="Arial" size="15.0" />
                   </font>
                </CheckBox>
-                    <CheckBox fx:id="cbPrecoVenda" text="Venda" GridPane.columnIndex="1" GridPane.rowIndex="12">
+                    <CheckBox fx:id="cbPrecoVenda" text="Venda" GridPane.columnIndex="1" GridPane.rowIndex="13">
                   <GridPane.margin>
                      <Insets left="80.0" />
                   </GridPane.margin>
@@ -306,7 +306,7 @@
                </CheckBox>
 
                                     <!-- Percentual -->
-                  <Label alignment="CENTER_RIGHT" prefHeight="17.0" prefWidth="333.0" text="Percentual %:" GridPane.rowIndex="13">
+                  <Label alignment="CENTER_RIGHT" prefHeight="17.0" prefWidth="333.0" text="Percentual %:" GridPane.rowIndex="14">
                       <font>
                           <Font name="Arial" size="15.0" />
                       </font>
@@ -314,14 +314,17 @@
                           <Insets right="10.0" />
                       </padding>
                   </Label>
-                  <TextField fx:id="txtPercentual" prefWidth="100.0" GridPane.columnIndex="1" GridPane.rowIndex="13">
+                  <TextField fx:id="txtPercentual" maxWidth="-Infinity" minHeight="-Infinity" prefHeight="25.0" prefWidth="168.0" promptText="\%" GridPane.columnIndex="1" GridPane.rowIndex="14">
                   <cursor>
                      <Cursor fx:constant="TEXT" />
                   </cursor>
+                  <font>
+                     <Font name="Arial Bold" size="15.0" />
+                  </font>
                </TextField>
 
                                     <!-- Tipo de Venda -->
-                  <Label alignment="TOP_RIGHT" prefHeight="17.0" prefWidth="337.0" text="Tipo de Venda:" GridPane.rowIndex="14">
+                  <Label alignment="TOP_RIGHT" prefHeight="17.0" prefWidth="337.0" text="Tipo de Venda:" GridPane.rowIndex="15">
                       <font>
                           <Font name="Arial" size="15.0" />
                       </font>
@@ -329,7 +332,7 @@
                           <Insets right="10.0" />
                       </padding>
                   </Label>
-                    <CheckBox fx:id="cbBoleto" text="Boleto" GridPane.columnIndex="1" GridPane.rowIndex="14">
+                    <CheckBox fx:id="cbBoleto" text="Boleto" GridPane.columnIndex="1" GridPane.rowIndex="15">
                   <GridPane.margin>
                      <Insets left="170.0" />
                   </GridPane.margin>
@@ -340,7 +343,7 @@
                      <Cursor fx:constant="HAND" />
                   </cursor>
                </CheckBox>
-                    <CheckBox fx:id="cbPix" text="Pix" GridPane.columnIndex="1" GridPane.rowIndex="14">
+                    <CheckBox fx:id="cbPix" text="Pix" GridPane.columnIndex="1" GridPane.rowIndex="15">
                   <font>
                      <Font name="Arial" size="15.0" />
                   </font>
@@ -348,7 +351,7 @@
                      <Cursor fx:constant="HAND" />
                   </cursor>
                </CheckBox>
-                    <CheckBox fx:id="cbCartao" minWidth="-Infinity" prefHeight="21.0" prefWidth="76.0" text="Cartão" GridPane.columnIndex="1" GridPane.rowIndex="14">
+                    <CheckBox fx:id="cbCartao" minWidth="-Infinity" prefHeight="21.0" prefWidth="76.0" text="Cartão" GridPane.columnIndex="1" GridPane.rowIndex="15">
                   <GridPane.margin>
                      <Insets left="80.0" />
                   </GridPane.margin>
@@ -359,9 +362,9 @@
                      <Cursor fx:constant="HAND" />
                   </cursor>
                </CheckBox>
-                  <Button fx:id="btnAvancar" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="44.0" prefWidth="153.0" style="-fx-background-color: #0041a6; -fx-border-radius: 10px;" styleClass="btnAvancar" stylesheets="@orcamento-totvs-jakarta-CERTO/orcamento-totvs-jakarta-CERTO/src/main/resources/fxml/styles.css" text="Próximo &gt;" textFill="WHITE" GridPane.columnIndex="9" GridPane.columnSpan="3" GridPane.rowIndex="15">
+                  <Button fx:id="btnAvancar" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="44.0" prefWidth="153.0" style="-fx-background-color: #0041a6; -fx-border-radius: 10px;" styleClass="btnAvancar" stylesheets="@orcamento-totvs-jakarta-CERTO/orcamento-totvs-jakarta-CERTO/src/main/resources/fxml/styles.css" text="Próximo &gt;" textFill="WHITE" GridPane.columnIndex="9" GridPane.columnSpan="3" GridPane.rowIndex="16">
                       <GridPane.margin>
-                          <Insets bottom="20.0" right="20.0" top="30.0" />
+                          <Insets bottom="60.0" right="20.0" top="30.0" />
                       </GridPane.margin>
                       <font>
                           <Font name="Arial Bold" size="15.0" />
@@ -370,6 +373,19 @@
                           <Cursor fx:constant="HAND" />
                       </cursor>
                   </Button>
+               <Label alignment="CENTER_RIGHT" prefHeight="17.0" prefWidth="322.0" text="Valor Máx. do Orçamento:" GridPane.rowIndex="12">
+                  <font>
+                     <Font name="Arial" size="15.0" />
+                  </font>
+                  <padding>
+                     <Insets right="10.0" />
+                  </padding>
+               </Label>
+               <TextField maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="25.0" prefWidth="168.0" promptText="R$" GridPane.columnIndex="1" GridPane.rowIndex="12">
+                  <font>
+                     <Font name="Arial" size="15.0" />
+                  </font>
+               </TextField>
                   <columnConstraints>
                       <ColumnConstraints maxWidth="378.0" minWidth="219.0" prefWidth="328.0" />
                       <ColumnConstraints maxWidth="354.0" minWidth="154.0" prefWidth="328.0" />
@@ -397,10 +413,11 @@
                       <RowConstraints maxHeight="257.0" minHeight="33.0" prefHeight="42.0" />
                       <RowConstraints maxHeight="233.0" minHeight="0.0" prefHeight="45.0" />
                       <RowConstraints maxHeight="238.0" minHeight="0.0" prefHeight="39.0" />
+                  <RowConstraints maxHeight="238.0" minHeight="10.0" prefHeight="39.0" />
                       <RowConstraints maxHeight="172.0" minHeight="0.0" prefHeight="40.0" />
                       <RowConstraints maxHeight="140.0" minHeight="0.0" prefHeight="43.0" />
-                      <RowConstraints maxHeight="250.0" minHeight="4.0" prefHeight="41.0" />
-                  <RowConstraints maxHeight="250.0" minHeight="10.0" prefHeight="101.0" />
+                      <RowConstraints maxHeight="250.0" minHeight="4.0" prefHeight="45.0" />
+                  <RowConstraints maxHeight="250.0" minHeight="10.0" prefHeight="97.0" />
                   </rowConstraints>
                   <padding>
                       <Insets top="20.0" />

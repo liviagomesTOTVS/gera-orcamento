@@ -5,6 +5,7 @@ import org.example.orcamentototvsjakarta.DTO.ClienteDTO;
 import org.example.orcamentototvsjakarta.db.entidade.Pcclient;
 
 import java.util.List;
+import java.util.Optional;
 
 public class PcclientDAO extends BaseDAO<Pcclient, Short>{
 
@@ -17,10 +18,38 @@ public class PcclientDAO extends BaseDAO<Pcclient, Short>{
         this.entityManager = emf.createEntityManager(); // Inicializando o EntityManager corretamente
     }
 
-    /** Buscar um cliente pelo código **/
-//    public Pcclient buscarPorCodigo(Integer codcli) {
-//        return entityManager.find(Pcclient.class, codcli);
-//    }
+    public ClienteDTO buscarDTOporCodigo(Integer codcli) {
+        Pcclient cliente = buscarPorCodigo(codcli);
+        if (cliente != null) {
+            return new ClienteDTO(cliente.getId().getCodcli(), cliente.getCliente(), cliente.getCgcent());
+        }
+        return null;
+    }
+
+
+    public List<ClienteDTO> buscarDTOPorFiltro(String termo, int limite) {
+        String jpql = "SELECT NEW org.example.orcamentototvsjakarta.DTO.ClienteDTO(" +
+                "p.id.codcli, p.cliente, p.cgcent) " +
+                "FROM Pcclient p " +
+                "WHERE (UPPER(p.cliente) LIKE :termo OR " +
+                "       CAST(p.id.codcli AS string) LIKE :termo OR " +
+                "       REGEXP_REPLACE(p.cgcent, '[^0-9]', '') LIKE :termo) " +
+                "AND p.id.codcli <> 99";
+        System.out.println("jpql = " + jpql);
+        return entityManager.createQuery(jpql, ClienteDTO.class)
+                .setParameter("termo", "%" + termo.replaceAll("[^0-9a-zA-Z]", "").toUpperCase() + "%")
+                .setMaxResults(limite)
+                .getResultList();
+    }
+
+
+
+    public List<ClienteDTO> buscarTodosDTO() {
+        return entityManager.createQuery(
+                        "SELECT new org.example.orcamentototvsjakarta.DTO.ClienteDTO(p.id.codcli, p.cliente, p.cgcent) " +
+                                "FROM Pcclient p WHERE p.id.codcli <> 99", ClienteDTO.class)
+                .getResultList();
+    }
 
     /** Buscar todos os clientes **/
     public List<Pcclient> buscarTodos() {
@@ -28,6 +57,7 @@ public class PcclientDAO extends BaseDAO<Pcclient, Short>{
                         "SELECT p FROM Pcclient p WHERE p.id.codcli <> 99", Pcclient.class)
                 .getResultList();
     }
+
 
     public List<Pcclient> buscarPorFiltro(String termo) {
         // Exemplo genérico usando JPQL ou SQL nativo — adapte à sua stack.
@@ -164,13 +194,7 @@ public class PcclientDAO extends BaseDAO<Pcclient, Short>{
         }
     }
 
-    public ClienteDTO buscarDTOporCodigo(Integer codcli) {
-        Pcclient cliente = buscarPorCodigo(codcli);
-        if (cliente != null) {
-            return new ClienteDTO(cliente.getId().getCodcli(), cliente.getCliente());
-        }
-        return null;
-    }
+
 
 
 }

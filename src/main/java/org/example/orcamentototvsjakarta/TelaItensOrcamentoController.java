@@ -3,6 +3,7 @@ package org.example.orcamentototvsjakarta;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
+import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.cell.PropertyValueFactory;
@@ -10,9 +11,12 @@ import javafx.stage.Stage;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.Persistence;
+import java.text.NumberFormat;
+
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Locale;
 
 import org.example.orcamentototvsjakarta.DTO.ItemOrcamentoDTO;
 import org.example.orcamentototvsjakarta.db.entidade.Pcorcavendai;
@@ -60,6 +64,45 @@ public class TelaItensOrcamentoController {
         colVenda.setCellValueFactory(new PropertyValueFactory<>("pvenda"));
         colTabela.setCellValueFactory(new PropertyValueFactory<>("ptabela"));
         colCodst.setCellValueFactory(new PropertyValueFactory<>("codst"));
+
+        NumberFormat currencyFormat = NumberFormat.getCurrencyInstance(new Locale("pt", "BR"));
+
+        colCusto.setCellFactory(column -> new TableCell<>() {
+            @Override
+            protected void updateItem(BigDecimal value, boolean empty) {
+                super.updateItem(value, empty);
+                if (empty || value == null) {
+                    setText(null);
+                } else {
+                    setText(currencyFormat.format(value));
+                }
+            }
+        });
+
+        colVenda.setCellFactory(column -> new TableCell<>() {
+            @Override
+            protected void updateItem(BigDecimal value, boolean empty) {
+                super.updateItem(value, empty);
+                if (empty || value == null) {
+                    setText(null);
+                } else {
+                    setText(currencyFormat.format(value));
+                }
+            }
+        });
+
+        colTabela.setCellFactory(column -> new TableCell<>() {
+            @Override
+            protected void updateItem(BigDecimal value, boolean empty) {
+                super.updateItem(value, empty);
+                if (empty || value == null) {
+                    setText(null);
+                } else {
+                    setText(currencyFormat.format(value));
+                }
+            }
+        });
+
     }
 
     private void carregarItens(Long orcamentoId) {

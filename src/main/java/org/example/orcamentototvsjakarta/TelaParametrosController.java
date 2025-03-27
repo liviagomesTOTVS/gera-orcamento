@@ -15,9 +15,7 @@ import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import org.example.orcamentototvsjakarta.DTO.*;
 import org.example.orcamentototvsjakarta.db.dao.*;
-import org.example.orcamentototvsjakarta.db.entidade.Pcclient;
 import org.example.orcamentototvsjakarta.model.ParametrosModel;
-import org.example.orcamentototvsjakarta.util.ModalTableClientes;
 
 import java.net.URL;
 import java.util.Comparator;
@@ -106,9 +104,9 @@ public class TelaParametrosController extends Application {
 
     private void carregarDadosClientes() {
         try {
-            List<String> clientes = pcclientDAO.buscarTodos().stream()
-                    .sorted(Comparator.comparing(pcclient -> pcclient.getId().getCodcli()))
-                    .map(pcclient -> pcclient.getId().getCodcli() + " - " + pcclient.getCliente())
+            List<String> clientes = pcclientDAO.buscarTodosDTO().stream()
+                    .sorted(Comparator.comparing(ClienteDTO::getCodcli))
+                    .map(ClienteDTO::toString)
                     .collect(Collectors.toList());
 
             carregarComboBox(comboCliente, clientes);
@@ -118,35 +116,32 @@ public class TelaParametrosController extends Application {
     }
 
 
-//    private void carregarDadosClientes() {
-//        try {
-//            Pcclient cliente = pcclientDAO.buscarPorCodigo(2);
-//
-//            carregarComboBox2(comboCliente, cliente.getId().getCodcli() + " - " + cliente.getCliente());
-//        } catch (Exception e) {
-//            showAlert("Erro ao carregar clientes: " + e.getMessage(), Alert.AlertType.ERROR);
-//        }
-//    }
-
     // Método para abrir a janela modal de pesquisa de cliente
     private void onPesquisarCliente() {
-        ModalTableClientes modal = new ModalTableClientes();
-        Stage stage = new Stage();
-        stage.setScene(new Scene(modal));
-        stage.setTitle("Pesquisar Cliente");
-        stage.setWidth(600);
-        stage.setHeight(480);
-        stage.initModality(Modality.APPLICATION_MODAL);
-        stage.initStyle(StageStyle.UNDECORATED);
-        stage.showAndWait();
+        try {
+            FXMLLoader loader = new FXMLLoader(this.getClass().getResource("/fxml/modalCliente.fxml"));
+            Parent root = loader.load();
 
-        Pcclient clienteSelecionado = modal.getSelecionado();
-        if (clienteSelecionado != null) {
-            clienteSelecionadoManual = new ClienteDTO(clienteSelecionado.getId().getCodcli(), clienteSelecionado.getCliente());
-            tfCliente.setText(clienteSelecionadoManual.toString());
-            carregarDadosRelacionadosCliente(clienteSelecionadoManual.getCodcli());
+            ModalClienteController controller = loader.getController();
+
+            Stage stage = new Stage();
+            stage.setScene(new Scene(root));
+            stage.setTitle("Pesquisar Cliente");
+            stage.initModality(Modality.APPLICATION_MODAL);
+            stage.showAndWait();
+
+            ClienteDTO clienteSelecionado = controller.getClienteSelecionado();
+            if (clienteSelecionado != null) {
+                clienteSelecionadoManual = clienteSelecionado;
+                tfCliente.setText(clienteSelecionado.toString());
+                carregarDadosRelacionadosCliente(clienteSelecionadoManual.getCodcli());
+            }
+
+        } catch (Exception e) {
+            showAlert("Erro ao abrir modal de cliente: " + e.getMessage(), Alert.AlertType.ERROR);
         }
     }
+
 
     private void buscarClientePorCodigoDigitado() {
         String texto = tfCliente.getText().trim();
@@ -206,46 +201,7 @@ public class TelaParametrosController extends Application {
         }
     }
 
-    //    private void carregarDadosRelacionadosCliente() {
-//        String clienteSelecionado = comboCliente.getSelectionModel().getSelectedItem();
-//        //String clienteSelecionado = "2";
-//
-//        if (clienteSelecionado == null || clienteSelecionado.equals("Selecione...")) {
-//            comboPraca.setValue(null);
-//            comboRamoAtividade.setValue(null);
-//            comboPlanoPagamento.getSelectionModel().clearSelection();
-//            comboCobranca.getSelectionModel().clearSelection();
-//            return;
-//        }
-//
-//        comboPraca.setDisable(false);
-//        comboRamoAtividade.setDisable(false);
-//        comboPlanoPagamento.setDisable(false);
-//        comboCobranca.setDisable(false);
-//        try {
-//            Integer codcli = Integer.parseInt(clienteSelecionado.split(" - ")[0]);
-//            //Integer codcli = 2;
-//
-//            // Buscar dados do cliente
-//            Integer codPraca = pcclientDAO.buscarPracaPorCliente(codcli);
-//            Integer codRamoAtividade = pcclientDAO.buscarRamoAtividadePorCliente(codcli);
-//            Short codPlanoPagamento = pcclientDAO.buscarPlanoPagamentoPorCliente(codcli);
-//            String codCobranca = pcclientDAO.buscarCobrancaPorCliente(codcli);
-//
-//            // Preencher Praça e Ramo de Atividade do Cliente
-//            comboPraca.setValue(codPraca != null ? codPraca.toString() : "Não informado");
-//            comboRamoAtividade.setValue(codRamoAtividade != null ? codRamoAtividade.toString() : "Não informado");
-//
-//            // Carregar todas as opções antes de definir o valor do cliente
-//            carregarOpcoesCobranca(codCobranca);
-//            carregarOpcoesPlanoPagamento(Integer.valueOf(codPlanoPagamento));
-//
-//            comboPraca.setDisable(true);
-//            comboRamoAtividade.setDisable(true);
-//        } catch (Exception e) {
-//            showAlert("Erro ao carregar dados do cliente: " + e.getMessage(), Alert.AlertType.ERROR);
-//        }
-//    }
+
 private void carregarDadosRelacionadosCliente(Integer codcli) {
     if (codcli == null) {
         comboPraca.setValue(null);
@@ -532,7 +488,7 @@ private void carregarDadosRelacionadosCliente(Integer codcli) {
         okButton.setStyle("-fx-background-color: white; -fx-text-fill: white;-fx-cursor: hand; -fx-text-fill: #0041a6;-fx-font-weight: bold;-fx-font-family: Arial");
         dialogPane.setMinHeight(Region.USE_PREF_SIZE);
         dialogPane.setMinWidth(400);
-        dialogPane.setPrefHeight(150);
+        dialogPane.setPrefHeight(600);
         dialogPane.setPrefWidth(500);
         alert.showAndWait();
     }

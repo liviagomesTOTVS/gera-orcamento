@@ -1,6 +1,9 @@
 package org.example.orcamentototvsjakarta;
 
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.Persistence;
 import javafx.application.Application;
+import javafx.application.Preloader;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.scene.Parent;
@@ -12,39 +15,61 @@ import java.net.URL;
 public class Main extends Application {
     @Override
     public void init() throws Exception {
-        Thread.sleep(5000); // Simula carregamento para o preloader
+        //Thread.sleep(5000); // Simula carregamento para o preloader
     }
 
     @Override
-    public void start(Stage stage) throws Exception {
-        FXMLLoader loader = new FXMLLoader(this.getClass().getResource("/fxml/telaParametros12.fxml"));
-        Parent root = loader.load();
+    public void start(Stage stage) {
+        new Thread(() -> {
+            try {
+                notifyPreloader(new MensagemNotification("Inicializando banco de dados..."));
+                Thread.sleep(300);
+                notifyPreloader(new Preloader.ProgressNotification(0.1));
+                Thread.sleep(300);  // Delay reduzido para melhor visualização
 
-        Scene scene = new Scene(root);
+                EntityManagerFactory emf = Persistence.createEntityManagerFactory("default");
+                emf.createEntityManager().close();
 
-//        URL cssResource = getClass().getResource("/css/main2.css");
-//        if (cssResource != null) {
-//            scene.getStylesheets().add(cssResource.toExternalForm());
-//        } else {
-//            System.err.println("Arquivo CSS não encontrado: /css/main.css");
-//        }
+                notifyPreloader(new MensagemNotification("Carregando entidades..."));
+                Thread.sleep(500);
+                notifyPreloader(new Preloader.ProgressNotification(0.4));
+                Thread.sleep(500);
 
-        // Configurações da janela
-        stage.initStyle(StageStyle.UNDECORATED);
-        stage.setResizable(false);
-        stage.setTitle("Parâmetros");
-        stage.setScene(scene);
+                notifyPreloader(new MensagemNotification("Configurando ambiente..."));
+                Thread.sleep(500);
+                notifyPreloader(new Preloader.ProgressNotification(0.7));
+                Thread.sleep(500);
 
-        // Impede que maximize
-        stage.maximizedProperty().addListener((observable, oldValue, newValue) -> {
-            if (newValue) {
-                stage.setMaximized(false);
+                notifyPreloader(new MensagemNotification("Abrindo tela inicial..."));
+                Thread.sleep(500);
+                notifyPreloader(new Preloader.ProgressNotification(1.0));
+
+                javafx.application.Platform.runLater(() -> {
+                    try {
+                        FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/telaParametros12.fxml"));
+                        Parent root = loader.load();
+                        Scene scene = new Scene(root);
+
+                        stage.initStyle(StageStyle.UNDECORATED);
+                        stage.setResizable(false);
+                        stage.setTitle("Parâmetros");
+                        stage.setScene(scene);
+                        stage.show();
+
+                        notifyPreloader(new TelaProntaNotification());
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                });
+
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-        });
-
-        notifyPreloader(new TelaProntaNotification());
-        stage.show();
+        }).start();
     }
+
+
+
 
     public static void main(String[] args) {
         System.setProperty("javafx.preloader", OrcamentoPreloader.class.getCanonicalName());
