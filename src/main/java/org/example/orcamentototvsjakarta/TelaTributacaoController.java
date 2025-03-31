@@ -1,6 +1,5 @@
 package org.example.orcamentototvsjakarta;
 
-import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
@@ -15,7 +14,6 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.text.TextAlignment;
 import javafx.stage.Stage;
-import javafx.stage.StageStyle;
 import org.example.orcamentototvsjakarta.db.dao.PctributDAO;
 import org.example.orcamentototvsjakarta.db.entidade.Pctribut;
 import org.example.orcamentototvsjakarta.model.ParametrosModel;
@@ -48,6 +46,15 @@ public class TelaTributacaoController {
     private final PctributDAO pcTributDAO = new PctributDAO();
     private final ObservableList<TributacaoModel> tributacoes = FXCollections.observableArrayList();
 
+    // ---------------------- INIT ----------------------
+
+    @FXML
+    public void initialize() {
+        configurarListView();
+        configurarBotoes();
+        carregarTributacoes();
+    }
+
     public void setParametrosModel(ParametrosModel parametrosModel) {
         this.parametrosModel = parametrosModel;
     }
@@ -56,9 +63,9 @@ public class TelaTributacaoController {
         this.departamentosSelecionados = departamentosSelecionados;
         carregarTributacoes();
     }
+    // ---------------------- CONFIGURAÇÃO UI ----------------------
 
-    @FXML
-    public void initialize() {
+    private void configurarListView() {
         listTributacoes.setItems(tributacoes);
 
         listTributacoes.setCellFactory(param -> new ListCell<>() {
@@ -68,68 +75,59 @@ public class TelaTributacaoController {
             private final HBox hBox = new HBox(10, checkBox, lblCodigo, lblDescricao);
 
             {
-                checkBox.setOnAction(event -> {
-                    TributacaoModel tributacao = getItem();
-                    if (tributacao != null) {
-                        tributacao.setSelecionado(checkBox.isSelected());
-                    }
-                });
                 checkBox.setCursor(Cursor.HAND);
                 checkBox.setMinWidth(43);
                 lblCodigo.setMinWidth(80);
-                lblCodigo.setTextAlignment(TextAlignment.CENTER);
                 lblDescricao.setMinWidth(200);
+                lblCodigo.setTextAlignment(TextAlignment.CENTER);
+
+                checkBox.setOnAction(event -> {
+                    TributacaoModel trib = getItem();
+                    if (trib != null) trib.setSelecionado(checkBox.isSelected());
+                });
             }
 
             @Override
-            protected void updateItem(TributacaoModel tributacao, boolean empty) {
-                super.updateItem(tributacao, empty);
-                if (empty || tributacao == null) {
+            protected void updateItem(TributacaoModel trib, boolean empty) {
+                super.updateItem(trib, empty);
+                if (empty || trib == null) {
                     setGraphic(null);
                 } else {
-                    lblCodigo.setText(tributacao.getCodigo().toString());
-                    lblDescricao.setText(tributacao.getDescricao());
-                    checkBox.setSelected(tributacao.isSelecionado());
+                    lblCodigo.setText(String.valueOf(trib.getCodigo()));
+                    lblDescricao.setText(trib.getDescricao());
+                    checkBox.setSelected(trib.isSelecionado());
                     setGraphic(hBox);
                 }
             }
         });
+    }
 
+    private void configurarBotoes() {
         btnProximo.setOnAction(event -> onProximo());
         btnAnterior.setOnAction(event -> onAnterior());
         btnTodos.setOnAction(event -> selecionarTodos(true));
         btnNenhum.setOnAction(event -> selecionarTodos(false));
         btnInverter.setOnAction(event -> inverterSelecao());
-
-        carregarTributacoes();
     }
+
+    // ---------------------- FUNÇÕES DE SELEÇÃO ----------------------
 
     private void carregarTributacoes() {
-        List<Pctribut> listaTributacoes = pcTributDAO.buscarTodos();
-
-        // Ordena as tributacoes pelo código (assumindo que trib.getId() seja comparável ou numérico)
-        listaTributacoes.sort(Comparator.comparing(Pctribut::getId));
-
         tributacoes.clear();
-
-        for (Pctribut trib : listaTributacoes) {
-            TributacaoModel model = new TributacaoModel(false, trib.getId(), trib.getMensagem());
-            tributacoes.add(model);
+        List<Pctribut> lista = pcTributDAO.buscarTodos();
+        lista.sort(Comparator.comparing(Pctribut::getId));
+        for (Pctribut trib : lista) {
+            tributacoes.add(new TributacaoModel(false, trib.getId(), trib.getMensagem()));
         }
     }
 
-
     private void selecionarTodos(boolean selecionar) {
-        for (TributacaoModel trib : listTributacoes.getItems()) {
-            trib.setSelecionado(selecionar);
-        }
+        tributacoes.forEach(t -> t.setSelecionado(selecionar));
         listTributacoes.refresh();
     }
 
     private void inverterSelecao() {
-        for (TributacaoModel trib : listTributacoes.getItems()) {
-            trib.setSelecionado(!trib.isSelecionado());
-        }
+        tributacoes.forEach(t -> t.setSelecionado(!t.isSelecionado()));
         listTributacoes.refresh();
     }
 
@@ -164,11 +162,6 @@ public class TelaTributacaoController {
             return;
         }
 
-//        // Verifica se os parâmetros foram repassados corretamente
-//        if (parametrosModel == null) {
-//            showAlert("Parâmetros não informados!", Alert.AlertType.ERROR);
-//            return;
-//        }
 
         try {
             // Extração dos valores dos parâmetros
@@ -189,23 +182,8 @@ public class TelaTributacaoController {
             // Extrai o código da filial
             String filialCode = parametrosModel.getFilial().split(" - ")[0].trim();
             int limiteProdutos = parametrosModel.getQtdeMaxItens();
+            String valorMaxOrcamento = parametrosModel.getValorMaxOrcamento().toString();
 
-            // Depuração dos parâmetros
-            System.out.println("Depuração dos parâmetros:");
-            System.out.println("p_codcli           = " + codcli);
-            System.out.println("p_codativ          = " + codativ);
-            System.out.println("p_cobranca         = " + cobranca);
-            System.out.println("p_plano_pagamento  = " + planoPagamento);
-            System.out.println("p_funcionario      = " + funcionario);
-            System.out.println("p_rca              = " + rca);
-            System.out.println("p_supervisor       = " + supervisor);
-            System.out.println("p_caixa            = " + caixa);
-            System.out.println("p_codst            = " + codstConcatenado);
-            System.out.println("p_mensagem         = " + mensagensConcatenadas);
-            System.out.println("p_departamento     = " + departamentosConcatenados);
-            System.out.println("p_codfilial        = " + filialCode);
-            System.out.println("p_codfilialnf      = " + filialCode);
-            System.out.println("p_limite_produtos  = " + limiteProdutos);
 
             List<Integer> listaDepartamentosInt = new ArrayList<>();
             for (String dep : departamentosSelecionadosLista) {
@@ -337,18 +315,24 @@ public class TelaTributacaoController {
             }
 
 
-// Construir a string de produtos no formato esperado
+            // Construir a string de produtos no formato esperado
             StringBuilder produtosConcatenados = new StringBuilder();
+
             for (Object[] row : results) {
                 Integer numSeq = ((Number) row[0]).intValue();
                 Integer codProd = ((Number) row[1]).intValue();
                 Double qtUnitEmb = ((Number) row[2]).doubleValue();
-                Double qtEstoque = ((Number) row[3]).doubleValue();
+                Double qtEstoque = ((Number) row[3]).doubleValue(); // <- usado como base do filtro
                 Double qtest = ((Number) row[4]).doubleValue();
                 Double qtestger = ((Number) row[5]).doubleValue();
                 Double pUnit = ((Number) row[6]).doubleValue();
                 Double pTabela = ((Number) row[7]).doubleValue();
                 Integer codSt = ((Number) row[8]).intValue();
+
+                // Ignorar produtos com quantidade <= 0
+                if (qtEstoque <= 0) {
+                    continue;
+                }
 
                 produtosConcatenados.append(codProd).append("|")
                         .append(qtUnitEmb).append("|")
@@ -357,6 +341,7 @@ public class TelaTributacaoController {
                         .append(pTabela).append("|")
                         .append(codSt).append("|")
                         .append(numSeq).append(";");
+
                 System.out.println("Produto: NUMSEQ=" + numSeq + ", CODPROD=" + codProd);
             }
 
@@ -369,6 +354,7 @@ public class TelaTributacaoController {
                 showAlert("Nenhum produto foi selecionado!", Alert.AlertType.WARNING);
                 return;
             }
+
 
             // Agora, chama a procedure passando os produtos em p_mensagem
             StoredProcedureQuery sp = em.createStoredProcedureQuery("sp_processa_orcamento");
@@ -387,6 +373,7 @@ public class TelaTributacaoController {
             sp.registerStoredProcedureParameter(13, String.class, ParameterMode.IN);  // p_codfilialnf
             sp.registerStoredProcedureParameter(14, Integer.class, ParameterMode.IN); // p_limite_produtos
             sp.registerStoredProcedureParameter(15, String.class, ParameterMode.OUT); // novo param
+            sp.registerStoredProcedureParameter(16, String.class, ParameterMode.IN); // p_valor_max_orcamento
 
 
             sp.setParameter(1, codcli);
@@ -403,8 +390,29 @@ public class TelaTributacaoController {
             sp.setParameter(12, filialCode);
             sp.setParameter(13, filialCode);
             sp.setParameter(14, limiteProdutos);
+            sp.setParameter(16, valorMaxOrcamento);
+
 
             System.out.println("\n\nprodutosString: " + produtosString);
+
+            System.out.println("=== CHAMADA DA PROCEDURE COM PARÂMETROS ===");
+            System.out.println("p_codcli: " + codcli);
+            System.out.println("p_codativ: " + codativ);
+            System.out.println("p_cobranca: " + cobranca);
+            System.out.println("p_plano_pagamento: " + planoPagamento);
+            System.out.println("p_funcionario: " + funcionario);
+            System.out.println("p_rca: " + rca);
+            System.out.println("p_supervisor: " + supervisor);
+            System.out.println("p_caixa: " + caixa);
+            System.out.println("p_codst: " + codstConcatenado);
+            System.out.println("p_mensagem: " + produtosString);
+            System.out.println("p_departamento: " + departamentosConcatenados);
+            System.out.println("p_codfilial: " + filialCode);
+            System.out.println("p_codfilialnf: " + filialCode);
+            System.out.println("p_limite_produtos: " + limiteProdutos);
+            System.out.println("p_valor_max_orcamento: " + valorMaxOrcamento);
+            System.out.println("===========================================");
+
 
             sp.execute();
             String numorcasGerados = (String) sp.getOutputParameterValue(15);
@@ -417,9 +425,6 @@ public class TelaTributacaoController {
                 FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/telaOrcamentos.fxml"));
                 Parent root = loader.load();
 
-                // Se necessário, você pode passar dados adicionais ao controlador da nova tela
-                // TelaOrcamentosController orcamentoController = loader.getController();
-                // orcamentoController.setDados(...);
                 TelaOrcamentosController controller = loader.getController();
                 controller.setNumorcasGerados(numorcasGerados);
 
@@ -430,64 +435,62 @@ public class TelaTributacaoController {
                 showAlert("Erro ao carregar a tela de orçamentos: " + e.getMessage(), Alert.AlertType.ERROR);
             }
         } catch (Exception ex) {
+            ex.printStackTrace(); // Mostra onde exatamente falhou no console
             showAlert("Erro ao chamar o procedimento: " + ex.getMessage(), Alert.AlertType.ERROR);
         }
     }
+
+    // ---------------------- AÇÃO: BOTÃO ANTERIOR ----------------------
 
     private void onAnterior() {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/telaDepartamentos16.fxml"));
             Parent root = loader.load();
-
             TelaDepartamentoController controller = loader.getController();
-            if (controller == null) {
-                showAlert("Erro ao carregar controlador da tela de departamentos!", Alert.AlertType.ERROR);
-                return;
-            }
-
-            // Passar os parâmetros corretamente ao voltar
             controller.setParametrosModel(parametrosModel);
 
             Stage novaJanela = new Stage();
             novaJanela.setTitle("Departamentos");
             novaJanela.setScene(new Scene(root));
-            //novaJanela.initStyle(StageStyle.UNDECORATED);
             novaJanela.show();
 
-            Stage janelaAtual = (Stage) btnAnterior.getScene().getWindow();
-            janelaAtual.close();
+            ((Stage) btnAnterior.getScene().getWindow()).close();
         } catch (IOException e) {
             showAlert("Erro ao carregar a tela de departamentos!", Alert.AlertType.ERROR);
         }
     }
 
 
+    // ---------------------- UTILITÁRIOS ----------------------
+
     private void showAlert(String message, Alert.AlertType type) {
         Alert alert = new Alert(type);
         alert.setTitle("AVISO!");
         alert.setHeaderText(null);
         alert.setContentText(message);
+
         DialogPane dialogPane = alert.getDialogPane();
         dialogPane.setStyle("-fx-background-color:  #0041a6; -fx-border-color: #2980b9; -fx-border-width: 2;");
-        dialogPane.lookup(".content").setStyle("-fx-background-color:  #0041a6; -fx-text-fill: white;-fx-font-weight: bold; -fx-font-size: 14pt; -fx-font-family: Arial");
+        dialogPane.lookup(".content").setStyle("-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 14pt; -fx-font-family: Arial");
+
         Button okButton = (Button) dialogPane.lookupButton(ButtonType.OK);
-        okButton.setStyle("-fx-background-color: white; -fx-text-fill: white;-fx-cursor: hand; -fx-text-fill: #0041a6;-fx-font-weight: bold;-fx-font-family: Arial");
+        okButton.setStyle("-fx-background-color: white; -fx-text-fill: #0041a6; -fx-font-weight: bold; -fx-font-family: Arial");
         dialogPane.setMinHeight(Region.USE_PREF_SIZE);
         dialogPane.setMinWidth(400);
         dialogPane.setPrefHeight(150);
         dialogPane.setPrefWidth(500);
+
         alert.showAndWait();
     }
 
     public void closeWindow(ActionEvent actionEvent) {
-        // Obtém a janela atual e fecha
         Stage stage = (Stage) ((Node) actionEvent.getSource()).getScene().getWindow();
         stage.close();
     }
 
     public void minimizeWindow(ActionEvent actionEvent) {
-        // Obtém a janela atual e minimiza
         Stage stage = (Stage) ((Node) actionEvent.getSource()).getScene().getWindow();
         stage.setIconified(true);
     }
+
 }

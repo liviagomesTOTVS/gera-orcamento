@@ -74,8 +74,6 @@ public class Main extends Application {
     }
 
 
-
-
     public static void main(String[] args) {
         System.setProperty("javafx.preloader", OrcamentoPreloader.class.getCanonicalName());
         launch(args);

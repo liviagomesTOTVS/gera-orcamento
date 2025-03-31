@@ -1,0 +1,314 @@
+create or replace PROCEDURE sp_processa_orcamento (
+    p_codcli           IN NUMBER,
+    p_codativ          IN VARCHAR2,
+    p_cobranca         IN VARCHAR2,
+    p_plano_pagamento  IN VARCHAR2,
+    p_funcionario      IN VARCHAR2,
+    p_rca              IN VARCHAR2,
+    p_supervisor       IN VARCHAR2,
+    p_caixa            IN VARCHAR2,
+    p_codst            IN VARCHAR2,
+    p_mensagem         IN VARCHAR2,
+    p_departamento     IN VARCHAR2,
+    p_codfilial        IN VARCHAR2,
+    p_codfilialnf      IN VARCHAR2,
+    p_limite_produtos  IN NUMBER,
+    p_numorcas OUT VARCHAR2
+) AS
+    l_codativ          NUMBER;
+    l_cobranca         VARCHAR2(4);
+    l_plano_pagamento  NUMBER;
+    l_rca              NUMBER;
+    l_supervisor       NUMBER;
+    l_codfilial        NUMBER;
+    l_codfilialnf      NUMBER;
+
+    v_cliente          PCCLIENT%ROWTYPE;
+    v_data             DATE := SYSDATE;
+    v_numorcamento     NUMBER(10);
+    v_seq              NUMBER;
+    v_contador         NUMBER := 0;
+    v_item_orcamento   NUMBER := 0;
+    v_lista_produtos   VARCHAR2(4000) := '';
+    vsexisteregistros  VARCHAR2(1) := 'N';
+    v_valor_total      NUMBER := 0;
+    v_valor_item       NUMBER;
+
+    v_produto          VARCHAR2(4000);
+    v_codprod          NUMBER;
+    v_qtunitemb        NUMBER;
+    v_qtestoque        NUMBER;
+    v_punit            NUMBER;
+    v_ptabela          NUMBER;
+    v_codst            NUMBER;
+    v_numseq           NUMBER;
+
+    LIMITE_VALOR CONSTANT NUMBER := 10000;
+BEGIN
+    IF p_mensagem IS NULL OR REGEXP_COUNT(p_mensagem, '[^|]*\|[^|]*\|[^|]*\|[^|]*\|[^|]*\|[^|]*\|[^|]*') = 0 THEN
+        RAISE_APPLICATION_ERROR(-20006, 'Formato inválido ou vazio em p_mensagem: ' || NVL(p_mensagem, 'NULL'));
+    END IF;
+
+    BEGIN
+        l_codativ         := TO_NUMBER(p_codativ);
+        l_cobranca        := p_cobranca;
+        l_plano_pagamento := TO_NUMBER(p_plano_pagamento);
+        l_rca             := TO_NUMBER(p_rca);
+        l_supervisor      := TO_NUMBER(p_supervisor);
+        l_codfilial       := TO_NUMBER(p_codfilial);
+        l_codfilialnf     := TO_NUMBER(p_codfilialnf);
+    EXCEPTION
+        WHEN VALUE_ERROR THEN
+            RAISE_APPLICATION_ERROR(-20001, 'Erro de conversão de parâmetros para número: ' || SQLERRM);
+    END;
+
+    BEGIN
+        SELECT *
+          INTO v_cliente
+          FROM PCCLIENT
+         WHERE CODCLI = p_codcli;
+    EXCEPTION
+        WHEN NO_DATA_FOUND THEN
+            RAISE_APPLICATION_ERROR(-20004, 'Cliente não encontrado para CODCLI: ' || p_codcli);
+        WHEN TOO_MANY_ROWS THEN
+            RAISE_APPLICATION_ERROR(-20005, 'Múltiplos clientes encontrados para CODCLI: ' || p_codcli);
+    END;
+
+    FOR i IN 1..REGEXP_COUNT(p_mensagem, ';') + 1 LOOP
+        v_produto := REGEXP_SUBSTR(p_mensagem, '[^;]+', 1, i);
+        IF v_produto IS NOT NULL THEN
+            BEGIN
+                v_codprod   := TO_NUMBER(REGEXP_SUBSTR(v_produto, '[^|]+', 1, 1));
+                v_qtunitemb := TO_NUMBER(REPLACE(REGEXP_SUBSTR(v_produto, '[^|]+', 1, 2), '.', ','));
+                v_qtestoque := TO_NUMBER(REPLACE(REGEXP_SUBSTR(v_produto, '[^|]+', 1, 3), '.', ','));
+                v_punit     := TO_NUMBER(REPLACE(REGEXP_SUBSTR(v_produto, '[^|]+', 1, 4), '.', ','));
+                v_ptabela   := TO_NUMBER(REPLACE(REGEXP_SUBSTR(v_produto, '[^|]+', 1, 5), '.', ','));
+                v_codst     := TO_NUMBER(REGEXP_SUBSTR(v_produto, '[^|]+', 1, 6));
+                v_numseq    := v_item_orcamento + 1;
+
+                DBMS_OUTPUT.PUT_LINE('Produto ' || i || ': ' || v_produto);
+                DBMS_OUTPUT.PUT_LINE('CODPROD=' || v_codprod || ', QTUNITEMB=' || v_qtunitemb ||
+                                     ', QTESTOQUE=' || v_qtestoque || ', PUNIT=' || v_punit ||
+                                     ', PTABELA=' || v_ptabela || ', CODST=' || v_codst ||
+                                     ', NUMSEQ=' || v_numseq);
+
+                IF v_codprod IS NULL OR v_qtunitemb IS NULL OR v_qtestoque IS NULL OR
+                   v_punit IS NULL OR v_ptabela IS NULL OR v_codst IS NULL THEN
+                    RAISE_APPLICATION_ERROR(-20002, 'Campo nulo no produto ' || i || ': ' || v_produto);
+                END IF;
+
+                v_punit := v_punit;
+                v_valor_item := v_qtestoque * v_punit;
+
+                IF v_qtestoque <= 0 THEN
+                    DBMS_OUTPUT.PUT_LINE('Item CODPROD=' || v_codprod ||
+                                         ' com quantidade zero ou negativa. Pulando item.');
+                    CONTINUE;
+                END IF;
+
+
+                IF v_contador = 0 OR MOD(v_contador, p_limite_produtos) = 0 THEN
+                    -- Verifica se o primeiro item gera um valor negativo
+                    IF v_valor_item < 0 THEN
+                        DBMS_OUTPUT.PUT_LINE('Item CODPROD=' || v_codprod ||
+                                             ' geraria orçamento negativo (' || v_valor_item || '). Pulando item.');
+                        CONTINUE;
+                    END IF;
+
+                    BEGIN
+                        SELECT PCUSUARI.PROXNUMPEDFORCA
+                          INTO v_numorcamento
+                          FROM PCUSUARI
+                         WHERE CODUSUR = l_rca;
+                    EXCEPTION
+                        WHEN NO_DATA_FOUND THEN
+                            RAISE_APPLICATION_ERROR(-20007, 'Usuário não encontrado para CODUSUR: ' || l_rca);
+                    END;
+
+                    DBMS_OUTPUT.PUT_LINE('Criando novo orçamento. Número: ' || v_numorcamento);
+
+                    v_item_orcamento := 0;
+                    v_numseq := 1;
+                    v_valor_total := 0;
+
+                    IF v_valor_item > LIMITE_VALOR THEN
+                        DBMS_OUTPUT.PUT_LINE('Item CODPROD=' || v_codprod ||
+                                             ' excede o limite de ' || LIMITE_VALOR ||
+                                             ' reais (' || v_valor_item || '). Pulando item.');
+                        CONTINUE;
+                    END IF;
+
+                    UPDATE PCUSUARI
+                       SET PROXNUMPEDFORCA = PROXNUMPEDFORCA + 1
+                     WHERE CODUSUR = l_rca;
+
+                    SELECT DFSEQ_PCORCAVENDACPREVENDA.NEXTVAL
+                      INTO v_seq
+                      FROM DUAL;
+
+                    INSERT INTO PCORCAVENDAC (
+                        NUMORCA, DATA, CODCLI, CODUSUR, DTENTREGA, CODFILIAL, CODFILIALNF, TIPOVENDA,
+                        CODPRACA, CODEMITENTE, POSICAO, OPERACAO, NUMCAR, CODCOB, HORA, MINUTO,
+                        CODSUPERVISOR, CONDVENDA, PERCVENDA, CODPLPAG, CODATV1, ORCAMENTOUTILIZADO,
+                        ORIGEMPED, GERACP, DUPLICADO, TIPODOC, VENDATRIANGULAR, NUMPREVENDA,
+                        FUT_DATACRIACAO, ROTINALANC
+                    ) VALUES (
+                        v_numorcamento, v_data, v_cliente.CODCLI, l_rca, v_data, l_codfilial,
+                        l_codfilialnf, 'V', v_cliente.CODPRACA, '1', 'L', 'N', '0', l_cobranca,
+                        TO_CHAR(v_data, 'HH24'), TO_CHAR(v_data, 'MI'), l_supervisor, 1, 100,
+                        l_plano_pagamento, v_cliente.CODATV1, 'N', 'A', 'N', 'N', 'O', 'N',
+                        v_seq, v_data, '9801'
+                    );
+
+                    p_numorcas := p_numorcas || TO_CHAR(v_numorcamento) || ',';
+                ELSE
+                    -- Calcula o valor total atual antes de adicionar o novo item
+                    SELECT NVL(SUM(QT * PVENDA), 0)
+                      INTO v_valor_total
+                      FROM PCORCAVENDAI
+                     WHERE NUMORCA = v_numorcamento;
+
+                    -- Verifica se adicionar o item tornará o total negativo ou ultrapassará o limite
+                    IF (v_valor_total + v_valor_item) < 0 THEN
+                        DBMS_OUTPUT.PUT_LINE('Item CODPROD=' || v_codprod ||
+                                             ' tornaria o orçamento negativo (Total atual: ' || v_valor_total ||
+                                             ', Novo item: ' || v_valor_item || '). Pulando item.');
+                        CONTINUE;
+                    END IF;
+
+                    IF (v_valor_total + v_valor_item) > LIMITE_VALOR THEN
+                        DBMS_OUTPUT.PUT_LINE('Item CODPROD=' || v_codprod ||
+                                             ' ultrapassaria o limite de ' || LIMITE_VALOR ||
+                                             ' reais (Total atual: ' || v_valor_total ||
+                                             ', Novo item: ' || v_valor_item || '). Pulando item.');
+                        CONTINUE;
+                    END IF;
+
+                    v_item_orcamento := v_item_orcamento + 1;
+                    v_numseq := v_item_orcamento + 1;
+                END IF;
+
+                INSERT INTO PCORCAVENDAI (
+                    NUMORCA, DATA, CODCLI, CODPROD, CODUSUR, QT, QTUNITEMB, ST, PVENDA, PTABELA,
+                    PERDESC, POSICAO, NUMCAR, NUMSEQ, CODST, PORIGINAL, DTULTALTER, VLCUSTOFIN,
+                    VLCUSTOREAL, PERCOM, BAIXADO
+                ) VALUES (
+                    v_numorcamento, v_data, v_cliente.CODCLI, v_codprod, l_rca,
+                    v_qtestoque, v_qtunitemb, '0', v_punit, v_ptabela, 80, 'L', '0', v_numseq,
+                    v_codst, v_ptabela, SYSDATE, 0, 0, 0, 'N'
+                );
+                DBMS_OUTPUT.PUT_LINE('Inserido item para o produto CODPROD: ' || v_codprod ||
+                                     ' com NUMSEQ: ' || v_numseq || ', Valor: ' || v_valor_item);
+                v_lista_produtos := v_lista_produtos || v_codprod || ', ';
+                vsexisteregistros := 'S';
+
+                v_valor_total := v_valor_total + v_valor_item;
+
+                FOR registros IN (
+                    SELECT
+                        pcorcavendac.numorca,
+                        pcorcavendai.codprod,
+                        pcorcavendai.numseq,
+                        NVL(NVL(pcest.custofin, pcest.custocont), 0.01) AS custofin,
+                        NVL(NVL(pcest.custoreal, pcest.custocont), 0.01) AS custoreal,
+                        pcprodut.pesobruto,
+                        NVL(VIEWMENOREMBALAGEM.codauxiliar, pcprodut.codauxiliar) AS codauxiliar,
+                        NVL(VIEWMENOREMBALAGEM.qtunit, pcprodut.qtunit) AS qtunit,
+                        pcprodut.tipomerc
+                    FROM pcorcavendac,
+                         pcorcavendai,
+                         pcest,
+                         pcprodut,
+                         VIEWMENOREMBALAGEM
+                    WHERE pcorcavendac.numorca = pcorcavendai.numorca
+                      AND pcorcavendai.codprod = pcprodut.codprod
+                      AND pcorcavendai.codprod = pcest.codprod
+                      AND pcorcavendac.codfilial = pcest.codfilial
+                      AND pcest.codfilial = VIEWMENOREMBALAGEM.codfilial(+)
+                      AND pcest.codprod = VIEWMENOREMBALAGEM.codprod(+)
+                      AND pcorcavendac.numorca = v_numorcamento
+                ) LOOP
+                    DBMS_OUTPUT.PUT_LINE('Atualizando item: CODPROD=' || registros.codprod ||
+                                         ' NumSeq=' || registros.numseq);
+
+                    UPDATE PCORCAVENDAI
+                       SET vlcustofin   = registros.custofin,
+                           vlcustoreal  = registros.custoreal,
+                           pesobruto    = registros.pesobruto,
+                           tipomerc     = registros.tipomerc,
+                           codauxiliar  = registros.codauxiliar,
+                           qtunitemb    = registros.qtunit
+                     WHERE codprod  = registros.codprod
+                       AND numorca  = registros.numorca
+                       AND numseq   = registros.numseq;
+                END LOOP;
+
+                FOR registros IN (
+                    SELECT
+                        PCORCAVENDAC.NUMORCA,
+                        SUM(PCORCAVENDAI.QT * PCORCAVENDAI.PVENDA) AS VLTOTAL,
+                        SUM(PCORCAVENDAI.QT * PCPRODUT.PESOLIQ) AS TOTPESO,
+                        SUM(PCORCAVENDAI.QT * PCPRODUT.VOLUME) AS TOTVOLUME,
+                        SUM(PCORCAVENDAI.QT * PCORCAVENDAI.PTABELA) AS VLTABELA,
+                        COUNT(PCORCAVENDAC.NUMORCA) AS QTITENS
+                    FROM PCORCAVENDAC,
+                         PCORCAVENDAI,
+                         PCPRODUT
+                    WHERE PCORCAVENDAC.NUMORCA = PCORCAVENDAI.NUMORCA
+                      AND PCORCAVENDAI.CODPROD = PCPRODUT.CODPROD
+                      AND PCORCAVENDAC.NUMORCA = v_numorcamento
+                    GROUP BY PCORCAVENDAC.NUMORCA
+                ) LOOP
+                    -- Verifica se o valor total é negativo
+                    IF registros.VLTOTAL <= 0 THEN
+                        DBMS_OUTPUT.PUT_LINE('Orçamento ' || v_numorcamento ||
+                                             ' teria valor total negativo (' || registros.VLTOTAL ||
+                                             '). Excluindo orçamento.');
+                        DELETE FROM PCORCAVENDAI WHERE NUMORCA = v_numorcamento;
+                        DELETE FROM PCORCAVENDAC WHERE NUMORCA = v_numorcamento;
+                    ELSE
+                        DBMS_OUTPUT.PUT_LINE('Atualizando cabeçalho do orçamento: ' || v_numorcamento);
+                        UPDATE PCORCAVENDAC
+                           SET VLTOTAL         = registros.VLTOTAL,
+                               VLTABELA        = registros.VLTABELA,
+                               NUMITENS        = registros.QTITENS,
+                               TOTPESO         = registros.TOTPESO,
+                               TOTVOLUME       = registros.TOTVOLUME,
+                               FUT_DATACRIACAO = SYSDATE
+                         WHERE NUMORCA = v_numorcamento;
+                    END IF;
+                END LOOP;
+
+                IF vsexisteregistros = 'N' THEN
+                    DBMS_OUTPUT.PUT_LINE('Nenhum item encontrado para o orçamento ' || v_numorcamento || '. Excluindo cabeçalho.');
+                    DELETE FROM PCORCAVENDAC
+                     WHERE NUMORCA = v_numorcamento;
+                END IF;
+
+                v_contador := v_contador + 1;
+                IF MOD(v_contador, p_limite_produtos) = 0 THEN
+                    COMMIT;
+                    DBMS_OUTPUT.PUT_LINE('Commit parcial realizado. Itens processados: ' || v_contador);
+                END IF;
+            END;
+        END IF;
+    END LOOP;
+
+    IF p_numorcas IS NOT NULL THEN
+        p_numorcas := RTRIM(p_numorcas, ',');
+    END IF;
+
+
+    COMMIT;
+    DBMS_OUTPUT.PUT_LINE('Commit final realizado para o conjunto de produtos.');
+
+    IF v_contador = 0 THEN
+        DBMS_OUTPUT.PUT_LINE('Nenhum produto selecionado para o orçamento.');
+    END IF;
+
+EXCEPTION
+    WHEN OTHERS THEN
+        ROLLBACK;
+        DBMS_OUTPUT.PUT_LINE('Erro encontrado: ' || SQLERRM);
+        RAISE;
+END sp_processa_orcamento;

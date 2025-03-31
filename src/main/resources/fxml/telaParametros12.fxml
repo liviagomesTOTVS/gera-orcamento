@@ -382,11 +382,20 @@
                      <Insets right="10.0" />
                   </padding>
                </Label>
-               <TextField maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="25.0" prefWidth="168.0" promptText="R$" GridPane.columnIndex="1" GridPane.rowIndex="12">
-                  <font>
-                     <Font name="Arial" size="15.0" />
-                  </font>
-               </TextField>
+                  <TextField fx:id="txtValorMaxOrcamento"
+                             maxWidth="-Infinity"
+                             minHeight="-Infinity"
+                             minWidth="-Infinity"
+                             prefHeight="25.0"
+                             prefWidth="168.0"
+                             promptText="R$"
+                             GridPane.columnIndex="1"
+                             GridPane.rowIndex="12">
+                      <font>
+                          <Font name="Arial" size="15.0" />
+                      </font>
+                  </TextField>
+
                   <columnConstraints>
                       <ColumnConstraints maxWidth="378.0" minWidth="219.0" prefWidth="328.0" />
                       <ColumnConstraints maxWidth="354.0" minWidth="154.0" prefWidth="328.0" />

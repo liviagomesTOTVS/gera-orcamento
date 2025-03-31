@@ -369,75 +369,79 @@ private void carregarDadosRelacionadosCliente(Integer codcli) {
     }
 
     private void onAvancar() {
+        // Validação: Cliente
         if (clienteSelecionadoManual == null) {
             showAlert("Selecione um cliente antes de continuar!", Alert.AlertType.WARNING);
             return;
         }
 
-
-
-
+        // Extração dos parâmetros
         String clienteSelecionado = clienteSelecionadoManual.toString();
-        FilialDTO filialSelecionadaDTO = comboFilial.getSelectionModel().getSelectedItem();
-        if (filialSelecionadaDTO == null || filialSelecionadaDTO.getCodigo() == null) {
-            showAlert("Selecione uma filial antes de continuar!", Alert.AlertType.WARNING);
-            return;
-        }
-        String filialSelecionada = filialSelecionadaDTO.toString(); // ou .getCodigo().toString() se quiser só o código
-
         String rcaSelecionado = getSelectedValue(comboRCA);
+        String supervisorSelecionado = getSelectedValue(comboSupervisor);
+        String pracaSelecionada = getSelectedValue(comboPraca);
+        String ramoAtividadeSelecionado = getSelectedValue(comboRamoAtividade);
+        Double valorMaxOrcamento = getDoubleValue(txtValorMaxOrcamento, "Valor Máx. do Orçamento");
 
-
-        if (filialSelecionada == null) {
+        // Validação: Filial
+        FilialDTO filialDTO = comboFilial.getSelectionModel().getSelectedItem();
+        if (filialDTO == null || filialDTO.getCodigo() == null) {
             showAlert("Selecione uma filial antes de continuar!", Alert.AlertType.WARNING);
             return;
         }
+        String filialSelecionada = filialDTO.toString();
 
+        // Validação: RCA
         if (rcaSelecionado == null) {
             showAlert("Selecione um RCA antes de continuar!", Alert.AlertType.WARNING);
             return;
         }
 
+        // Validação: Quantidade máxima de itens
         Integer qtdeMaxItens = getIntegerValue(txtQtdeMaxItens, "Qtde Máx. Itens no Orçamento");
         if (qtdeMaxItens == null) {
             showAlert("Informe a quantidade máxima de itens no orçamento!", Alert.AlertType.WARNING);
             return;
         }
 
-        String pracaSelecionada = getSelectedValue(comboPraca);
-        PlanoPagamentoDTO planoSelecionadoDTO = comboPlanoPagamento.getSelectionModel().getSelectedItem();
-        String planoPagamentoSelecionado = (planoSelecionadoDTO != null && planoSelecionadoDTO.getCodigo() != null)
-                ? planoSelecionadoDTO.getCodigo().toString()
+        // Plano de pagamento
+        PlanoPagamentoDTO planoDTO = comboPlanoPagamento.getSelectionModel().getSelectedItem();
+        String planoPagamentoSelecionado = (planoDTO != null && planoDTO.getCodigo() != null)
+                ? planoDTO.getCodigo().toString()
                 : null;
 
-        CobrancaDTO cobrancaSelecionadaDTO = comboCobranca.getSelectionModel().getSelectedItem();
-        String cobrancaSelecionada = (cobrancaSelecionadaDTO != null && cobrancaSelecionadaDTO.getCodigo() != null)
-                ? cobrancaSelecionadaDTO.getCodigo()
+        // Cobrança
+        CobrancaDTO cobrancaDTO = comboCobranca.getSelectionModel().getSelectedItem();
+        String cobrancaSelecionada = (cobrancaDTO != null && cobrancaDTO.getCodigo() != null)
+                ? cobrancaDTO.getCodigo()
                 : null;
 
-        String supervisorSelecionado = getSelectedValue(comboSupervisor);
-
-        // Criando objeto de parâmetros para passar à próxima tela
+        // Monta o modelo de parâmetros
         ParametrosModel parametros = new ParametrosModel(
-                clienteSelecionado, filialSelecionada, pracaSelecionada,
-                getSelectedValue(comboRamoAtividade), planoPagamentoSelecionado,
-                cobrancaSelecionada, rcaSelecionado, supervisorSelecionado,
-                qtdeMaxItens
+                clienteSelecionado,
+                filialSelecionada,
+                pracaSelecionada,
+                ramoAtividadeSelecionado,
+                planoPagamentoSelecionado,
+                cobrancaSelecionada,
+                rcaSelecionado,
+                supervisorSelecionado,
+                qtdeMaxItens,
+                valorMaxOrcamento // Se null, o model assume o valor padrão (10.000)
         );
 
+        // Abre a próxima tela
         try {
-            FXMLLoader loader = new FXMLLoader(this.getClass().getResource("/fxml/telaDepartamentos16.fxml"));
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/telaDepartamentos16.fxml"));
             Parent root = loader.load();
 
             TelaDepartamentoController controller = loader.getController();
             if (controller == null) {
-                showAlert("Erro ao carregar controlador da tela de departamentdos!", Alert.AlertType.ERROR);
+                showAlert("Erro ao carregar controlador da tela de departamentos!", Alert.AlertType.ERROR);
                 return;
             }
 
-            // Passando os parâmetros diretamente para a tela de tributação via controller da tela de departamentos
             controller.setParametrosModel(parametros);
-
 
             Stage stage = new Stage();
             stage.setTitle("Departamentos");
@@ -447,11 +451,11 @@ private void carregarDadosRelacionadosCliente(Integer codcli) {
 
             ((Stage) btnAvancar.getScene().getWindow()).close();
 
-
         } catch (Exception e) {
             showAlert("Erro ao carregar próxima tela: " + e.getMessage(), Alert.AlertType.ERROR);
         }
     }
+
 
     private Integer getIntegerValue(TextField field, String fieldName) {
         try {

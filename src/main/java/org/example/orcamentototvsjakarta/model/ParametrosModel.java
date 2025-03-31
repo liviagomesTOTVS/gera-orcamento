@@ -13,11 +13,13 @@ public class ParametrosModel {
     private final StringProperty rca;
     private final StringProperty supervisor;
     private final IntegerProperty qtdeMaxItens;
+    private final DoubleProperty valorMaxOrcamento;
+
 
 
     public ParametrosModel(String cliente, String filial, String praca, String ramoAtividade,
                            String planoPagamento, String cobranca, String rca, String supervisor,
-                           Integer qtdeMaxItens) {
+                           Integer qtdeMaxItens, Double valorMaxOrcamento) {
         this.cliente = new SimpleStringProperty(cliente);
         this.filial = new SimpleStringProperty(filial);
         this.praca = new SimpleStringProperty(praca);
@@ -27,9 +29,18 @@ public class ParametrosModel {
         this.rca = new SimpleStringProperty(rca);
         this.supervisor = new SimpleStringProperty(supervisor);
         this.qtdeMaxItens = new SimpleIntegerProperty(qtdeMaxItens != null ? qtdeMaxItens : 10);
+        this.valorMaxOrcamento = new SimpleDoubleProperty(valorMaxOrcamento != null ? valorMaxOrcamento : 10000);
         validarParametros();
-
     }
+
+    public Double getValorMaxOrcamento() {
+        return valorMaxOrcamento.get();
+    }
+
+    public DoubleProperty valorMaxOrcamentoProperty() {
+        return valorMaxOrcamento;
+    }
+
 
     private void validarParametros() {
         Function<String, Integer> extrairNumero = str -> {
