@@ -52,7 +52,7 @@
         </VBox>
     </top>
     <center>
-        <GridPane alignment="CENTER" prefHeight="491.0" prefWidth="1102.0" style="-fx-background-color: #fff; -fx-border-width: 8px;">
+        <GridPane alignment="CENTER" prefHeight="491.0" prefWidth="1102.0" style="-fx-background-color: #d3e4fe; -fx-border-width: 8px;">
             <HBox GridPane.columnIndex="1" GridPane.columnSpan="2" GridPane.rowIndex="3">
                 <children>
                     <Button fx:id="btnTodos" alignment="CENTER" contentDisplay="CENTER" prefHeight="25.0" prefWidth="57.0" style="-fx-background-color: #e6e6e6;" text="Todos">

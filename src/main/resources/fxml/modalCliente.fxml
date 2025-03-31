@@ -37,7 +37,7 @@
         </Button>
 
         <!-- Tabela de clientes -->
-        <TableView fx:id="tabelaClientes" layoutX="0" layoutY="110" prefHeight="460" prefWidth="857">
+        <TableView fx:id="tabelaClientes" layoutX="0" layoutY="110" prefHeight="460" prefWidth="857" style="-fx-background-color: #d3e4fe;">
             <columns>
                 <TableColumn fx:id="colCodigo" prefWidth="100.0" text="Código" />
                 <TableColumn fx:id="colNome" prefWidth="400.0" text="Nome" />

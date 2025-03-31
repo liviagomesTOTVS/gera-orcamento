@@ -10,15 +10,15 @@
 
 <AnchorPane prefHeight="554.0" prefWidth="878.0" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.example.orcamentototvsjakarta.TelaItensOrcamentoController">
     <children>
-        <TableView fx:id="tableItens" layoutX="1.0" layoutY="66.0" prefHeight="422.0" prefWidth="876.0" xmlns:fx="http://javafx.com/fxml">
+        <TableView fx:id="tableItens" layoutX="1.0" layoutY="66.0" prefHeight="422.0" prefWidth="876.0" style="-fx-background-color: #d3e4fe;" xmlns:fx="http://javafx.com/fxml">
             <columns>
                 <TableColumn fx:id="colCodigo" prefWidth="80.0" text="Código" />
-                <TableColumn fx:id="colDescricao" prefWidth="200.0" text="Produto" />
-                <TableColumn fx:id="colQuantidade" prefWidth="80.0" text="Qtde" />
-                <TableColumn fx:id="colCusto" prefWidth="100.0" text="Custo" />
-                <TableColumn fx:id="colVenda" prefWidth="100.0" text="Preço Venda" />
-                <TableColumn fx:id="colTabela" prefWidth="100.0" text="Preço Tabela" />
-                <TableColumn fx:id="colCodst" prefWidth="100.0" text="Tributação (CODST)" />
+                <TableColumn fx:id="colDescricao" prefWidth="287.0" text="Produto" />
+                <TableColumn fx:id="colQuantidade" prefWidth="76.0" text="Qtde" />
+                <TableColumn fx:id="colCusto" prefWidth="87.0" text="Custo" />
+                <TableColumn fx:id="colVenda" prefWidth="95.0" text="Preço Venda" />
+                <TableColumn fx:id="colTabela" prefWidth="102.0" text="Preço Tabela" />
+                <TableColumn fx:id="colCodst" prefWidth="148.0" text="Tributação (CODST)" />
             </columns>
         </TableView>
 

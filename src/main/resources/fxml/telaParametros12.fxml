@@ -8,6 +8,7 @@
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.effect.Blend?>
+<?import javafx.scene.effect.DropShadow?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.ColumnConstraints?>
 <?import javafx.scene.layout.GridPane?>
@@ -17,9 +18,9 @@
 <?import javafx.scene.text.Font?>
 <?import javafx.scene.text.Text?>
 
-<BorderPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="755.0" prefWidth="1089.0" style="-fx-background-color: white;" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.example.orcamentototvsjakarta.TelaParametrosController">
+<BorderPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="755.0" prefWidth="1089.0" style="-fx-background-color: white; -fx-border-radius: 8px;" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.example.orcamentototvsjakarta.TelaParametrosController">
    <left>
-      <Pane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="69.0" prefWidth="1086.0" style="-fx-background-color: #0041a6;" BorderPane.alignment="TOP_CENTER">
+      <Pane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="69.0" prefWidth="1086.0" style="-fx-background-color: #0041a6; -fx-border-radius: 8px;" BorderPane.alignment="TOP_CENTER">
          <children>
                 <HBox alignment="CENTER_RIGHT" layoutX="955.0" layoutY="-10.0" prefHeight="79.0" prefWidth="135.0" style="-fx-padding: 5; -fx-background-color: #0041a6;">
                     <Label style="-fx-text-fill: white; -fx-font-size: 16px;" />
@@ -49,9 +50,9 @@
       </Pane>
    </left>
    <bottom>
-      <Pane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="652.0" prefWidth="1086.0" style="-fx-background-color: fff;" BorderPane.alignment="CENTER">
+      <Pane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="652.0" prefWidth="1086.0" style="-fx-background-color: fff; -fx-border-radius: 8px;" BorderPane.alignment="CENTER">
          <children>
-              <GridPane alignment="BASELINE_CENTER" layoutX="7.0" layoutY="-37.0" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="711.0" prefWidth="1081.0" styleClass="teste">
+              <GridPane alignment="BASELINE_CENTER" layoutX="-7.0" layoutY="-42.0" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="694.0" prefWidth="1096.0" style="-fx-background-color: #d3e4fe; -fx-border-radius: 8px;" styleClass="teste">
                   <Label alignment="CENTER_RIGHT" prefHeight="17.0" prefWidth="334.0" text="Filial:" GridPane.rowIndex="2">
                       <GridPane.margin>
                           <Insets />
@@ -63,7 +64,7 @@
                           <Insets right="10.0" />
                       </padding>
                   </Label>
-                  <ComboBox fx:id="comboFilial" prefHeight="25.0" prefWidth="359.0" GridPane.columnIndex="1" GridPane.rowIndex="2">
+                  <ComboBox fx:id="comboFilial" prefHeight="25.0" prefWidth="359.0" style="-fx-background-color: white;" GridPane.columnIndex="1" GridPane.rowIndex="2">
                       <GridPane.margin>
                           <Insets />
                       </GridPane.margin>
@@ -86,7 +87,7 @@
                   </padding>
                   </Label>
                     <TextField fx:id="tfCliente" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="25.0" prefWidth="297.0" promptText="Digite o código do cliente" GridPane.columnIndex="1" GridPane.rowIndex="3" />
-                    <Button fx:id="btnPesquisarCliente" alignment="CENTER_RIGHT" contentDisplay="CENTER" onAction="#abrirModalPesquisa" prefHeight="17.0" prefWidth="26.0" text="..." GridPane.columnIndex="1" GridPane.rowIndex="3">
+                    <Button fx:id="btnPesquisarCliente" alignment="CENTER_RIGHT" contentDisplay="CENTER" onAction="#abrirModalPesquisa" prefHeight="17.0" prefWidth="26.0" style="-fx-background-color: #ebebeb;" text="..." GridPane.columnIndex="1" GridPane.rowIndex="3">
                   <GridPane.margin>
                      <Insets left="298.0" />
                   </GridPane.margin>
@@ -108,7 +109,7 @@
                           <Insets />
                       </GridPane.margin>
                   </Label>
-                  <ComboBox fx:id="comboPraca" disable="true" focusTraversable="false" mouseTransparent="true" opacity="0.77" prefHeight="25.0" prefWidth="404.0" style="-fx-background-color: #bfd6e3;" GridPane.columnIndex="1" GridPane.rowIndex="4">
+                  <ComboBox fx:id="comboPraca" disable="true" focusTraversable="false" mouseTransparent="true" opacity="0.77" prefHeight="25.0" prefWidth="404.0" style="-fx-background-color: #ebebeb;" GridPane.columnIndex="1" GridPane.rowIndex="4">
                       <GridPane.margin>
                           <Insets />
                       </GridPane.margin>
@@ -130,7 +131,7 @@
                           <Insets />
                       </GridPane.margin>
                   </Label>
-                  <ComboBox fx:id="comboRamoAtividade" disable="true" focusTraversable="false" mouseTransparent="true" opacity="0.77" prefHeight="25.0" prefWidth="371.0" style="-fx-background-color: #bfd6e3;" GridPane.columnIndex="1" GridPane.rowIndex="5">
+                  <ComboBox fx:id="comboRamoAtividade" disable="true" focusTraversable="false" mouseTransparent="true" opacity="0.77" prefHeight="25.0" prefWidth="371.0" style="-fx-background-color: #ebebeb;" GridPane.columnIndex="1" GridPane.rowIndex="5">
                       <GridPane.margin>
                           <Insets />
                       </GridPane.margin>
@@ -152,7 +153,7 @@
                           <Insets />
                       </GridPane.margin>
                   </Label>
-                  <ComboBox fx:id="comboPlanoPagamento" prefHeight="25.0" prefWidth="386.0" GridPane.columnIndex="1" GridPane.rowIndex="6">
+                  <ComboBox fx:id="comboPlanoPagamento" prefHeight="25.0" prefWidth="386.0" style="-fx-background-color: white;" GridPane.columnIndex="1" GridPane.rowIndex="6">
                       <GridPane.margin>
                           <Insets />
                       </GridPane.margin>
@@ -177,7 +178,7 @@
                           <Insets />
                       </GridPane.margin>
                   </Label>
-                  <ComboBox fx:id="comboCobranca" prefHeight="25.0" prefWidth="371.0" GridPane.columnIndex="1" GridPane.rowIndex="7">
+                  <ComboBox fx:id="comboCobranca" prefHeight="25.0" prefWidth="371.0" style="-fx-background-color: white;" GridPane.columnIndex="1" GridPane.rowIndex="7">
                       <GridPane.margin>
                           <Insets />
                       </GridPane.margin>
@@ -202,7 +203,7 @@
                           <Insets />
                       </GridPane.margin>
                   </Label>
-                  <ComboBox fx:id="comboFuncionario" prefHeight="25.0" prefWidth="363.0" GridPane.columnIndex="1" GridPane.rowIndex="8">
+                  <ComboBox fx:id="comboFuncionario" prefHeight="25.0" prefWidth="363.0" style="-fx-background-color: white;" GridPane.columnIndex="1" GridPane.rowIndex="8">
                       <GridPane.margin>
                           <Insets />
                       </GridPane.margin>
@@ -227,7 +228,7 @@
                           <Insets />
                       </GridPane.margin>
                   </Label>
-                  <ComboBox fx:id="comboRCA" prefHeight="25.0" prefWidth="351.0" GridPane.columnIndex="1" GridPane.rowIndex="9">
+                  <ComboBox fx:id="comboRCA" prefHeight="25.0" prefWidth="351.0" style="-fx-background-color: white;" GridPane.columnIndex="1" GridPane.rowIndex="9">
                       <GridPane.margin>
                           <Insets />
                       </GridPane.margin>
@@ -252,7 +253,7 @@
                           <Insets />
                       </GridPane.margin>
                   </Label>
-                  <ComboBox fx:id="comboSupervisor" disable="true" focusTraversable="false" mouseTransparent="true" opacity="0.77" prefHeight="25.0" prefWidth="431.0" style="-fx-background-color: #bfd6e3;" GridPane.columnIndex="1" GridPane.rowIndex="10">
+                  <ComboBox fx:id="comboSupervisor" disable="true" focusTraversable="false" mouseTransparent="true" opacity="0.77" prefHeight="25.0" prefWidth="431.0" style="-fx-background-color: #ebebeb;" GridPane.columnIndex="1" GridPane.rowIndex="10">
                       <GridPane.margin>
                           <Insets />
                       </GridPane.margin>
@@ -362,7 +363,7 @@
                      <Cursor fx:constant="HAND" />
                   </cursor>
                </CheckBox>
-                  <Button fx:id="btnAvancar" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="44.0" prefWidth="153.0" style="-fx-background-color: #0041a6; -fx-border-radius: 10px;" styleClass="btnAvancar" stylesheets="@orcamento-totvs-jakarta-CERTO/orcamento-totvs-jakarta-CERTO/src/main/resources/fxml/styles.css" text="Próximo &gt;" textFill="WHITE" GridPane.columnIndex="9" GridPane.columnSpan="3" GridPane.rowIndex="16">
+                  <Button fx:id="btnAvancar" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="44.0" prefWidth="153.0" style="-fx-background-color: #0041a6; -fx-border-radius: 10px;" styleClass="btnAvancar" stylesheets="@../../../../../../../../totvs/gera-orcamento-main/src/main/resources/fxml/orcamento-totvs-jakarta-CERTO/orcamento-totvs-jakarta-CERTO/src/main/resources/fxml/styles.css" text="Próximo &gt;" textFill="WHITE" GridPane.columnIndex="9" GridPane.columnSpan="3" GridPane.rowIndex="16">
                       <GridPane.margin>
                           <Insets bottom="60.0" right="20.0" top="30.0" />
                       </GridPane.margin>
@@ -426,4 +427,7 @@
          </children>
       </Pane>
    </bottom>
+   <effect>
+      <DropShadow height="38.59" radius="20.14" spread="0.06" width="43.97" />
+   </effect>
 </BorderPane>

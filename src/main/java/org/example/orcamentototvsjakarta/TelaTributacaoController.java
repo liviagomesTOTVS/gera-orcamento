@@ -332,7 +332,7 @@ public class TelaTributacaoController {
 
             if (results.isEmpty()) {
                 System.out.println("⚠️ Nenhum produto retornado para o cliente " + codcli + " com plano " + planoPagamento + ", filial " + filialCode);
-                showAlert("Nenhum produto foi selecionado para este cliente.\nVerifique se ele possui produtos ativos com estoque e tributação válida.", Alert.AlertType.WARNING);
+                showAlert("Nenhum produto foi selecionado para este cliente.\nVerifique se ele possui tributação válida.", Alert.AlertType.WARNING);
                 return;
             }
 

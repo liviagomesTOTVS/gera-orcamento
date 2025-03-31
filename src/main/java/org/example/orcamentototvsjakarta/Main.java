@@ -56,6 +56,11 @@ public class Main extends Application {
                         stage.setScene(scene);
                         stage.show();
 
+                        URL cssUrl = getClass().getResource("/css/main.css");
+                        if (cssUrl != null) {
+                            scene.getStylesheets().add(cssUrl.toExternalForm());
+                        }
+
                         notifyPreloader(new TelaProntaNotification());
                     } catch (Exception e) {
                         e.printStackTrace();

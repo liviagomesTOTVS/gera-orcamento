@@ -27,7 +27,20 @@ public class ModalClienteController {
         colCodigo.setCellValueFactory(data -> new SimpleObjectProperty<>(data.getValue().getCodcli()));
         colNome.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getNome()));
         colCnpj.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getCnpj())); // se tiver no DTO
+
+        // Dê dois cliques para selecionar o cliente
+        tabelaClientes.setRowFactory(tv -> {
+            TableRow<ClienteDTO> row = new TableRow<>();
+            row.setOnMouseClicked(event -> {
+                if (event.getClickCount() == 2 && !row.isEmpty()) {
+                    clienteSelecionado = row.getItem();
+                    fechar();
+                }
+            });
+            return row;
+        });
     }
+
 
     @FXML
     public void onBuscar() {

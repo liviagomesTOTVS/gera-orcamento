@@ -13,7 +13,7 @@
 
 <AnchorPane prefHeight="655.0" prefWidth="857.0" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.example.orcamentototvsjakarta.TelaOrcamentosController">
     <children>
-        <TableView fx:id="tableOrcamentos" layoutX="-2.0" layoutY="59.0" prefHeight="545.0" prefWidth="863.0" AnchorPane.bottomAnchor="60.0" AnchorPane.topAnchor="58.0">
+        <TableView fx:id="tableOrcamentos" layoutX="-2.0" layoutY="59.0" prefHeight="545.0" prefWidth="863.0" style="-fx-background-color: #d3e4fe;" AnchorPane.bottomAnchor="60.0" AnchorPane.topAnchor="58.0">
             <columns>
                 <TableColumn fx:id="colNumero" prefWidth="131.0" style="-fx-font-family: arial;" text="Número Orçamento" />
                 <TableColumn fx:id="colData" prefWidth="119.0" style="-fx-font-family: arial;" text="Data" />
@@ -59,5 +59,13 @@
             </Button>
          </children>
       </Pane>
+      <Button fx:id="btnVoltar1" alignment="CENTER" contentDisplay="CENTER" layoutX="603.0" layoutY="611.0" onAction="#onVoltar" prefHeight="30.0" prefWidth="157.0" style="-fx-background-color: #636363; -fx-text-fill: white;" text="Novo Orçamento">
+         <font>
+            <Font name="Arial Bold" size="16.0" />
+         </font>
+         <cursor>
+            <Cursor fx:constant="HAND" />
+         </cursor>
+      </Button>
     </children>
 </AnchorPane>

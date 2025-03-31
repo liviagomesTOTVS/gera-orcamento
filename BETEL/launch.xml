@@ -3,11 +3,11 @@
   <dontWrapJar>false</dontWrapJar>
   <headerType>gui</headerType>
   <jar>C:\Users\livia\OneDrive\Documentos\orcamento-totvs-jakarta-CERTO2\target\orcamento-totvs-jakarta-1.0-SNAPSHOT-jar-with-dependencies.jar</jar>
-  <outfile>C:\Users\livia\OneDrive\Documentos\orcamento-totvs-jakarta-CERTO2\BETEL\ORÇAMENTO.exe</outfile>
+  <outfile>C:\Users\livia\OneDrive\Documentos\orcamento-totvs-jakarta-CERTO2\TPP-9801.exe</outfile>
   <errTitle></errTitle>
   <cmdLine></cmdLine>
   <chdir>.</chdir>
-  <priority>normal</priority>
+  <priority>high</priority>
   <downloadUrl></downloadUrl>
   <supportUrl></supportUrl>
   <stayAlive>false</stayAlive>

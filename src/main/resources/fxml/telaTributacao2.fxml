@@ -20,7 +20,7 @@
 <BorderPane prefHeight="566.0" prefWidth="956.0" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.example.orcamentototvsjakarta.TelaTributacaoController">
     <top>
         <VBox prefHeight="79.0" prefWidth="922.0">
-            <Pane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="67.0" prefWidth="957.0" style="-fx-background-color: #0041a6;">
+            <Pane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="80.0" prefWidth="957.0" style="-fx-background-color: #0041a6;">
                 <children>
                     <Label layoutX="14.0" layoutY="18.0" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="27.0" prefWidth="387.0" text="Tipo de Tributação de vendas" textFill="WHITE">
                         <font>
@@ -53,8 +53,8 @@
             </Pane>
         </VBox>
     </top>
-    <center>
-        <GridPane alignment="CENTER" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="469.0" prefWidth="938.0" style="-fx-background-color: #fff;">
+   <right>
+        <GridPane alignment="CENTER" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="488.0" prefWidth="957.0" style="-fx-background-color: #d3e4fe;" BorderPane.alignment="CENTER">
             <HBox maxHeight="-Infinity" maxWidth="-Infinity" minWidth="-Infinity" prefHeight="40.0" prefWidth="549.0" GridPane.columnSpan="2" GridPane.rowIndex="1">
                 <Label minWidth="80" prefHeight="17.0" prefWidth="113.0" text="Selecionar">
                     <font>
@@ -165,5 +165,5 @@
                 <RowConstraints maxHeight="422.0" minHeight="38.0" prefHeight="45.0" />
             </rowConstraints>
         </GridPane>
-    </center>
+   </right>
 </BorderPane>

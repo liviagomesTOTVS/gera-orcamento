@@ -2,6 +2,7 @@ package org.example.orcamentototvsjakarta;
 
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -170,4 +171,26 @@ public class TelaOrcamentosController {
             em.close();
         }
     }
+
+    @FXML
+    private void onVoltarMenu() {
+        try {
+            // Fecha a tela atual
+            Stage stageAtual = (Stage) tableOrcamentos.getScene().getWindow();
+            stageAtual.close();
+
+            // Abre a tela inicial (ex: TelaParametros)
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/telaParametros12.fxml"));
+            Parent root = loader.load();
+
+            Stage novaStage = new Stage();
+            novaStage.setTitle("Novo Orçamento");
+            novaStage.setScene(new Scene(root));
+            novaStage.show();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
 }

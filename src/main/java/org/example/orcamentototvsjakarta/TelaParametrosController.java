@@ -192,7 +192,7 @@ public class TelaParametrosController extends Application {
         try {
             List<FilialDTO> filiais = pcfilialDAO.buscarTodas().stream()
                     .sorted(Comparator.comparing(pcfilial -> pcfilial.getId().getCodigo()))
-                    .map(pcfilial -> new FilialDTO(Integer.valueOf(pcfilial.getId().getCodigo()), pcfilial.getRazaosocial()))
+                    .map(pcfilial -> new FilialDTO(pcfilial.getId().getCodigo(), pcfilial.getRazaosocial()))
                     .collect(Collectors.toList());
 
             carregarComboBoxFilial(comboFilial, filiais);
