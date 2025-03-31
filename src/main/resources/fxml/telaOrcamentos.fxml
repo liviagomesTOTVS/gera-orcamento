@@ -59,7 +59,7 @@
             </Button>
          </children>
       </Pane>
-      <Button fx:id="btnVoltar1" alignment="CENTER" contentDisplay="CENTER" layoutX="603.0" layoutY="611.0" onAction="#onVoltar" prefHeight="30.0" prefWidth="157.0" style="-fx-background-color: #636363; -fx-text-fill: white;" text="Novo Orçamento">
+      <Button fx:id="btnVoltar1" alignment="CENTER" contentDisplay="CENTER" layoutX="603.0" layoutY="611.0" onAction="#onVoltarMenu" prefHeight="30.0" prefWidth="157.0" style="-fx-background-color: #636363; -fx-text-fill: white;" text="Novo Orçamento">
          <font>
             <Font name="Arial Bold" size="16.0" />
          </font>
