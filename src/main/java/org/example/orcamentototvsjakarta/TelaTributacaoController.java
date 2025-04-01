@@ -246,7 +246,7 @@ public class TelaTributacaoController {
                     "          PCEST.QTEST, " +
                     "          PCEST.QTESTGER, " +
                     "          DECODE(NVL(PCEST.CUSTOCONT, 0), 0, NVL(PCEST.CUSTOFIN, 0), PCEST.CUSTOCONT) PUNIT, " +
-                    "          DECODE(NVL(PCEST.CUSTOCONT, 0), 0, NVL(PCEST.CUSTOFIN, 0), PCEST.CUSTOCONT) PTABELA, " +
+                    "          NVL(PCPRODUT.PVENDA, 0) AS PTABELA, " +
                     "          PCTRIBUT.CODST " +
                     "      FROM PCPRODUT, PCFORNEC, PCMARCA, PCEST, PCTABPR, PCCLIENT, PCPRACA, " +
                     "           PCTRIBUT, PCTRIBPISCOFINS, PCCONSUM, PCPLPAG, VIEWMENOREMBALAGEM " +
@@ -355,6 +355,8 @@ public class TelaTributacaoController {
                 return;
             }
 
+            String tipoPrecoSelecionado = parametrosModel.getTipoPreco(); // Deve retornar "C" ou "V"
+
 
             // Agora, chama a procedure passando os produtos em p_mensagem
             StoredProcedureQuery sp = em.createStoredProcedureQuery("sp_processa_orcamento");
@@ -374,6 +376,7 @@ public class TelaTributacaoController {
             sp.registerStoredProcedureParameter(14, Integer.class, ParameterMode.IN); // p_limite_produtos
             sp.registerStoredProcedureParameter(15, String.class, ParameterMode.OUT); // novo param
             sp.registerStoredProcedureParameter(16, String.class, ParameterMode.IN); // p_valor_max_orcamento
+            sp.registerStoredProcedureParameter(17, String.class, ParameterMode.IN);
 
 
             sp.setParameter(1, codcli);
@@ -391,6 +394,7 @@ public class TelaTributacaoController {
             sp.setParameter(13, filialCode);
             sp.setParameter(14, limiteProdutos);
             sp.setParameter(16, valorMaxOrcamento);
+            sp.setParameter(17, tipoPrecoSelecionado);
 
 
             System.out.println("\n\nprodutosString: " + produtosString);

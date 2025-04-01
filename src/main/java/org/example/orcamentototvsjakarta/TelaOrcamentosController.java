@@ -5,6 +5,7 @@ import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.TableCell;
@@ -191,6 +192,18 @@ public class TelaOrcamentosController {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public void closeWindow(ActionEvent actionEvent) {
+        // Obtém a janela atual e fecha
+        Stage stage = (Stage) ((Node) actionEvent.getSource()).getScene().getWindow();
+        stage.close();
+    }
+
+    public void minimizeWindow(ActionEvent actionEvent) {
+        // Obtém a janela atual e minimiza
+        Stage stage = (Stage) ((Node) actionEvent.getSource()).getScene().getWindow();
+        stage.setIconified(true);
     }
 
 }

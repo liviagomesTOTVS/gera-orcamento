@@ -2,7 +2,9 @@ package org.example.orcamentototvsjakarta;
 
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.scene.Node;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
@@ -129,5 +131,17 @@ public class TelaItensOrcamentoController {
     private void onVoltar() {
         Stage stage = (Stage) tableItens.getScene().getWindow();
         stage.close();
+    }
+
+    public void closeWindow(ActionEvent actionEvent) {
+        // Obtém a janela atual e fecha
+        Stage stage = (Stage) ((Node) actionEvent.getSource()).getScene().getWindow();
+        stage.close();
+    }
+
+    public void minimizeWindow(ActionEvent actionEvent) {
+        // Obtém a janela atual e minimiza
+        Stage stage = (Stage) ((Node) actionEvent.getSource()).getScene().getWindow();
+        stage.setIconified(true);
     }
 }

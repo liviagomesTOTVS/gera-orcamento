@@ -14,7 +14,7 @@ public class ParametrosModel {
     private final StringProperty supervisor;
     private final IntegerProperty qtdeMaxItens;
     private final DoubleProperty valorMaxOrcamento;
-
+    private String tipoPreco; // "CUSTO" ou "VENDA"
 
 
     public ParametrosModel(String cliente, String filial, String praca, String ramoAtividade,
@@ -40,6 +40,19 @@ public class ParametrosModel {
     public DoubleProperty valorMaxOrcamentoProperty() {
         return valorMaxOrcamento;
     }
+
+    public String getTipoPreco() {
+        return tipoPrecoProperty.get();
+    }
+
+    public void setTipoPreco(String tipoPreco) {
+        this.tipoPrecoProperty.set(tipoPreco);
+    }
+
+    public StringProperty tipoPrecoProperty() {
+        return tipoPrecoProperty;
+    }
+
 
 
     private void validarParametros() {
@@ -71,6 +84,8 @@ public class ParametrosModel {
     public StringProperty rcaProperty() { return rca; }
     public StringProperty supervisorProperty() { return supervisor; }
     public IntegerProperty qtdeMaxItensProperty() { return qtdeMaxItens; }
+    private final StringProperty tipoPrecoProperty = new SimpleStringProperty("VENDA");
+
 
 
     // Métodos para obter os valores diretamente

@@ -430,6 +430,16 @@ private void carregarDadosRelacionadosCliente(Integer codcli) {
                 valorMaxOrcamento // Se null, o model assume o valor padrão (10.000)
         );
 
+        // Define o tipo de preço (C = Custo, V = Venda)
+        if (cbPrecoCusto.isSelected()) {
+            parametros.setTipoPreco("C");
+        } else if (cbPrecoVenda.isSelected()) {
+            parametros.setTipoPreco("V");
+        } else {
+            showAlert("Selecione o tipo de preço (Custo ou Venda)!", Alert.AlertType.WARNING);
+            return;
+        }
+
         // Abre a próxima tela
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/telaDepartamentos16.fxml"));
