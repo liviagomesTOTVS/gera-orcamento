@@ -19,6 +19,7 @@
                 <TableColumn fx:id="colVenda" prefWidth="95.0" text="Preço Venda" />
                 <TableColumn fx:id="colTabela" prefWidth="102.0" text="Preço Tabela" />
                 <TableColumn fx:id="colCodst" prefWidth="148.0" text="Tributação (CODST)" />
+                <TableColumn fx:id="colTotal" prefWidth="102.0" text="Total" />
             </columns>
         </TableView>
 

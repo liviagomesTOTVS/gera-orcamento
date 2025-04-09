@@ -11,6 +11,8 @@
 <?import javafx.scene.text.Font?>
 <?import javafx.scene.text.Text?>
 
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.image.Image?>
 <AnchorPane prefHeight="655.0" prefWidth="857.0" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.example.orcamentototvsjakarta.TelaOrcamentosController">
     <children>
         <TableView fx:id="tableOrcamentos" layoutX="-2.0" layoutY="59.0" prefHeight="545.0" prefWidth="863.0" style="-fx-background-color: #d3e4fe;" AnchorPane.bottomAnchor="60.0" AnchorPane.topAnchor="58.0">
@@ -41,25 +43,39 @@
                </font>
             </Text>
             <Label layoutX="770.0" prefHeight="61.0" prefWidth="92.0" />
-            <Button layoutX="766.0" layoutY="3.0" mnemonicParsing="false" prefHeight="56.0" prefWidth="24.0" style="-fx-background-color: #0041a6;" text="-" textFill="WHITE">
+            <Button layoutX="766.0" layoutY="3.0" mnemonicParsing="false" prefHeight="56.0" prefWidth="24.0" style="-fx-background-color: #0041a6;"  textFill="WHITE">
                <font>
                   <Font name="Arial Bold" size="30.0" />
                </font>
                <cursor>
                   <Cursor fx:constant="HAND" />
                </cursor>
+                <graphic>
+                    <ImageView fitHeight="41.0" fitWidth="19.0" pickOnBounds="true" preserveRatio="true">
+                        <image>
+                            <Image url="@../imgs/minimize.png" />
+                        </image>
+                    </ImageView>
+                </graphic>
             </Button>
-            <Button layoutX="818.0" layoutY="4.0" mnemonicParsing="false" prefHeight="56.0" prefWidth="43.0" style="-fx-background-color: #0041a6;" text="X" textFill="WHITE">
+            <Button layoutX="818.0" layoutY="4.0" mnemonicParsing="false" prefHeight="56.0" prefWidth="43.0" style="-fx-background-color: #0041a6;"  textFill="WHITE">
                <font>
                   <Font name="Arial Bold" size="20.0" />
                </font>
                <cursor>
                   <Cursor fx:constant="HAND" />
                </cursor>
+                <graphic>
+                    <ImageView fitHeight="16.0" fitWidth="16.0" pickOnBounds="true" preserveRatio="true">
+                        <image>
+                            <Image url="@../imgs/fehcar.png" />
+                        </image>
+                    </ImageView>
+                </graphic>
             </Button>
          </children>
       </Pane>
-      <Button fx:id="btnVoltar1" alignment="CENTER" contentDisplay="CENTER" layoutX="603.0" layoutY="611.0" onAction="#onVoltarMenu" prefHeight="30.0" prefWidth="157.0" style="-fx-background-color: #636363; -fx-text-fill: white;" text="Novo Orçamento">
+      <Button fx:id="btnVoltar1" alignment="CENTER" contentDisplay="CENTER" layoutX="603.0" layoutY="611.0" onAction="#onVoltar" prefHeight="30.0" prefWidth="157.0" style="-fx-background-color: #636363; -fx-text-fill: white;" text="Novo Orçamento">
          <font>
             <Font name="Arial Bold" size="16.0" />
          </font>

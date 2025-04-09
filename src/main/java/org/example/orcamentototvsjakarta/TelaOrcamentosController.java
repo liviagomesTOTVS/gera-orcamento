@@ -188,6 +188,13 @@ public class TelaOrcamentosController {
             stage.setTitle("Itens do Orçamento #" + orcamentoId);
             stage.setScene(new Scene(root));
 
+            stage.setResizable(false);
+            stage.maximizedProperty().addListener((observable, oldValue, newValue) -> {
+                if (newValue) {
+                    stage.setMaximized(false);
+                }
+            });
+
             // Mostrar a janela antes de chamar setOrcamentoId para garantir que a Scene esteja disponível
             stage.show();
 

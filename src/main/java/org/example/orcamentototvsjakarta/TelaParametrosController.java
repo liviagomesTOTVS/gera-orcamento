@@ -463,6 +463,168 @@ public class TelaParametrosController {
     }
 
     /**
+     * Abre a tela de departamentos com os parâmetros selecionados
+     */
+    private void abrirTelaDepartamentos(ParametrosModel parametros) {
+        try {
+            // Carrega o arquivo FXML
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/telaDepartamentos16.fxml"));
+            Parent root = loader.load();
+
+            // Obtém o controller e configura os parâmetros
+            TelaDepartamentoController controller = loader.getController();
+            if (controller == null) {
+                AlertUtil.showAlert("Erro ao carregar controlador da tela de departamentos!",
+                        Alert.AlertType.ERROR);
+                return;
+            }
+
+            controller.setParametrosModel(parametros);
+
+            // Configura e mostra a nova tela
+            Stage stage = new Stage();
+            stage.setTitle("Departamentos");
+            stage.setScene(new Scene(root));
+            stage.initStyle(StageStyle.UNDECORATED);
+            stage.show();
+
+            // Fecha a tela atual
+            ((Stage) btnAvancar.getScene().getWindow()).close();
+
+        } catch (IOException e) {
+            LOGGER.log(Level.SEVERE, "Erro ao carregar próxima tela", e);
+            AlertUtil.showAlert("Erro ao carregar próxima tela: " + e.getMessage(),
+                    Alert.AlertType.ERROR);
+        }
+    }
+
+    /**
+     * Converte o texto de um campo para Double
+     */
+    private Double getDoubleValue(TextField field, String fieldName) {
+        try {
+            // Verificação de segurança para evitar NullPointerException
+            if (field == null) {
+                LOGGER.log(Level.WARNING, "Campo " + fieldName + " é nulo");
+                AlertUtil.showAlert("O campo '" + fieldName + "' não foi inicializado corretamente. Por favor, contate o suporte técnico.",
+                        Alert.AlertType.ERROR);
+                return null;
+            }
+
+            String text = field.getText();
+            if (text == null || text.trim().isEmpty()) {
+                return null;
+            }
+
+            return Double.parseDouble(text.trim().replace(',', '.'));
+        } catch (NumberFormatException ex) {
+            LOGGER.log(Level.INFO, "Formato inválido para " + fieldName + ": " + (field != null ? field.getText() : "campo nulo"), ex);
+            AlertUtil.showAlert("Insira um valor numérico válido para '" + fieldName + "'!",
+                    Alert.AlertType.ERROR);
+            return null;
+        } catch (Exception ex) {
+            LOGGER.log(Level.SEVERE, "Erro ao processar o campo " + fieldName, ex);
+            AlertUtil.showAlert("Ocorreu um erro ao processar o campo '" + fieldName + "': " + ex.getMessage(),
+                    Alert.AlertType.ERROR);
+            return null;
+        }
+    }
+
+    /**
+     * Converte o texto de um campo para Integer
+     */
+    private Integer getIntegerValue(TextField field, String fieldName) {
+        try {
+            // Verificação de segurança para evitar NullPointerException
+            if (field == null) {
+                LOGGER.log(Level.WARNING, "Campo " + fieldName + " é nulo");
+                AlertUtil.showAlert("O campo '" + fieldName + "' não foi inicializado corretamente. Por favor, contate o suporte técnico.",
+                        Alert.AlertType.ERROR);
+                return null;
+            }
+
+            String text = field.getText();
+            if (text == null || text.trim().isEmpty()) {
+                return null;
+            }
+
+            return Integer.parseInt(text.trim());
+        } catch (NumberFormatException ex) {
+            LOGGER.log(Level.INFO, "Formato inválido para " + fieldName + ": " + (field != null ? field.getText() : "campo nulo"), ex);
+            AlertUtil.showAlert("Insira um valor numérico válido para '" + fieldName + "'!",
+                    Alert.AlertType.ERROR);
+            return null;
+        } catch (Exception ex) {
+            LOGGER.log(Level.SEVERE, "Erro ao processar o campo " + fieldName, ex);
+            AlertUtil.showAlert("Ocorreu um erro ao processar o campo '" + fieldName + "': " + ex.getMessage(),
+                    Alert.AlertType.ERROR);
+            return null;
+        }
+    }
+
+    /**
+     * Cria o modelo de parâmetros com os dados preenchidos
+     */
+    private ParametrosModel criarParametrosModel() {
+        try {
+            // Extração dos parâmetros dos componentes
+            String clienteSelecionado = clienteSelecionadoManual != null ? clienteSelecionadoManual.toString() : "";
+            String rcaSelecionado = getSelectedValue(comboRCA);
+            String supervisorSelecionado = getSelectedValue(comboSupervisor);
+            String pracaSelecionada = getSelectedValue(comboPraca);
+            String ramoAtividadeSelecionado = getSelectedValue(comboRamoAtividade);
+
+            // Tratamento seguro para evitar NullPointerException
+            Double valorMaxOrcamento = null;
+            if (txtValorMaxOrcamento != null) {
+                valorMaxOrcamento = getDoubleValue(txtValorMaxOrcamento, "Valor Máx. do Orçamento");
+            }
+
+            Integer qtdeMaxItens = null;
+            if (txtQtdeMaxItens != null) {
+                qtdeMaxItens = getIntegerValue(txtQtdeMaxItens, "Qtde Máx. Itens no Orçamento");
+            }
+
+            FilialDTO filialDTO = comboFilial.getSelectionModel().getSelectedItem();
+            String filialSelecionada = filialDTO != null ? filialDTO.toString() : "";
+
+            // Extração de valores dos combos de objetos com verificação de nulos
+            String planoPagamentoSelecionado = getValorComboDTO(
+                    comboPlanoPagamento,
+                    dto -> dto != null && dto.getCodigo() != null ? dto.getCodigo().toString() : null
+            );
+
+            String cobrancaSelecionada = getValorComboDTO(
+                    comboCobranca,
+                    dto -> dto != null ? dto.getCodigo() : null
+            );
+
+            // Monta o modelo de parâmetros
+            ParametrosModel parametros = new ParametrosModel(
+                    clienteSelecionado,
+                    filialSelecionada,
+                    pracaSelecionada,
+                    ramoAtividadeSelecionado,
+                    planoPagamentoSelecionado,
+                    cobrancaSelecionada,
+                    rcaSelecionado,
+                    supervisorSelecionado,
+                    qtdeMaxItens,
+                    valorMaxOrcamento // Se null, o model assume o valor padrão
+            );
+
+            // Define o tipo de preço (C = Custo, V = Venda)
+            parametros.setTipoPreco((cbPrecoCusto != null && cbPrecoCusto.isSelected()) ? "C" : "V");
+
+            return parametros;
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Erro ao criar modelo de parâmetros", e);
+            AlertUtil.showAlert("Erro ao processar os parâmetros: " + e.getMessage(), Alert.AlertType.ERROR);
+            return null;
+        }
+    }
+
+    /**
      * Handler para o botão Avançar
      */
     @FXML
@@ -473,17 +635,74 @@ public class TelaParametrosController {
             }
 
             ParametrosModel parametros = criarParametrosModel();
+            if (parametros == null) {
+                AlertUtil.showAlert("Não foi possível criar os parâmetros. Verifique os dados informados.",
+                        Alert.AlertType.ERROR);
+                return;
+            }
+
             abrirTelaDepartamentos(parametros);
+        } catch (NullPointerException e) {
+            LOGGER.log(Level.SEVERE, "Erro de referência nula ao avançar para próxima tela", e);
+            AlertUtil.showAlert("Um campo obrigatório não foi inicializado corretamente. Detalhes: " + e.getMessage(),
+                    Alert.AlertType.ERROR);
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Erro ao avançar para próxima tela", e);
-            AlertUtil.showAlert("Erro ao avançar: " + e.getMessage(), Alert.AlertType.ERROR);
+            AlertUtil.showAlert("Erro ao processar a solicitação: " + e.getMessage(),
+                    Alert.AlertType.ERROR);
         }
+    }
+
+    /**
+     * Validação adicional verificando se os campos obrigatórios estão inicializados
+     */
+    private boolean verificarInicializacaoCampos() {
+        StringBuilder mensagemErro = new StringBuilder("Os seguintes campos não foram inicializados corretamente:\n");
+        boolean todosInicializados = true;
+
+        if (tfCliente == null) {
+            mensagemErro.append("- Campo Cliente\n");
+            todosInicializados = false;
+        }
+
+        if (comboFilial == null) {
+            mensagemErro.append("- Combo Filial\n");
+            todosInicializados = false;
+        }
+
+        if (comboRCA == null) {
+            mensagemErro.append("- Combo RCA\n");
+            todosInicializados = false;
+        }
+
+        if (txtQtdeMaxItens == null) {
+            mensagemErro.append("- Campo Quantidade Máxima de Itens\n");
+            todosInicializados = false;
+        }
+
+        if (cbPrecoCusto == null || cbPrecoVenda == null) {
+            mensagemErro.append("- Checkboxes de tipo de preço\n");
+            todosInicializados = false;
+        }
+
+        if (!todosInicializados) {
+            LOGGER.log(Level.SEVERE, mensagemErro.toString());
+            AlertUtil.showAlert(mensagemErro.toString() + "\nPor favor, contate o suporte técnico.",
+                    Alert.AlertType.ERROR);
+        }
+
+        return todosInicializados;
     }
 
     /**
      * Valida os campos obrigatórios antes de avançar
      */
     private boolean validarCampos() {
+        // Verificar inicialização dos campos obrigatórios
+        if (!verificarInicializacaoCampos()) {
+            return false;
+        }
+
         // Validação: Cliente
         if (clienteSelecionadoManual == null) {
             AlertUtil.showAlert("Selecione um cliente antes de continuar!", Alert.AlertType.WARNING);
@@ -525,132 +744,41 @@ public class TelaParametrosController {
     }
 
     /**
-     * Cria o modelo de parâmetros com os dados preenchidos
-     */
-    private ParametrosModel criarParametrosModel() {
-        // Extração dos parâmetros dos componentes
-        String clienteSelecionado = clienteSelecionadoManual.toString();
-        String rcaSelecionado = getSelectedValue(comboRCA);
-        String supervisorSelecionado = getSelectedValue(comboSupervisor);
-        String pracaSelecionada = getSelectedValue(comboPraca);
-        String ramoAtividadeSelecionado = getSelectedValue(comboRamoAtividade);
-        Double valorMaxOrcamento = getDoubleValue(txtValorMaxOrcamento, "Valor Máx. do Orçamento");
-        Integer qtdeMaxItens = getIntegerValue(txtQtdeMaxItens, "Qtde Máx. Itens no Orçamento");
-
-        FilialDTO filialDTO = comboFilial.getSelectionModel().getSelectedItem();
-        String filialSelecionada = filialDTO.toString();
-
-        // Extração de valores dos combos de objetos
-        String planoPagamentoSelecionado = getValorComboDTO(
-                comboPlanoPagamento,
-                dto -> dto.getCodigo() != null ? dto.getCodigo().toString() : null
-        );
-
-        String cobrancaSelecionada = getValorComboDTO(
-                comboCobranca,
-                dto -> dto.getCodigo()
-        );
-
-        // Monta o modelo de parâmetros
-        ParametrosModel parametros = new ParametrosModel(
-                clienteSelecionado,
-                filialSelecionada,
-                pracaSelecionada,
-                ramoAtividadeSelecionado,
-                planoPagamentoSelecionado,
-                cobrancaSelecionada,
-                rcaSelecionado,
-                supervisorSelecionado,
-                qtdeMaxItens,
-                valorMaxOrcamento // Se null, o model assume o valor padrão
-        );
-
-        // Define o tipo de preço (C = Custo, V = Venda)
-        parametros.setTipoPreco(cbPrecoCusto.isSelected() ? "C" : "V");
-
-        return parametros;
-    }
-
-    /**
      * Extrai um valor de um combobox de DTOs usando uma função extratora
+     * com verificação adicional de nulos
      */
     private <T, R> R getValorComboDTO(ComboBox<T> comboBox, Function<T, R> extrator) {
-        T selectedItem = comboBox.getSelectionModel().getSelectedItem();
-        return (selectedItem != null) ? extrator.apply(selectedItem) : null;
-    }
-
-    /**
-     * Abre a tela de departamentos com os parâmetros selecionados
-     */
-    private void abrirTelaDepartamentos(ParametrosModel parametros) {
-        try {
-            // Carrega o arquivo FXML
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/telaDepartamentos16.fxml"));
-            Parent root = loader.load();
-
-            // Obtém o controller e configura os parâmetros
-            TelaDepartamentoController controller = loader.getController();
-            if (controller == null) {
-                AlertUtil.showAlert("Erro ao carregar controlador da tela de departamentos!",
-                        Alert.AlertType.ERROR);
-                return;
-            }
-
-            controller.setParametrosModel(parametros);
-
-            // Configura e mostra a nova tela
-            Stage stage = new Stage();
-            stage.setTitle("Departamentos");
-            stage.setScene(new Scene(root));
-            stage.initStyle(StageStyle.UNDECORATED);
-            stage.show();
-
-            // Fecha a tela atual
-            ((Stage) btnAvancar.getScene().getWindow()).close();
-
-        } catch (IOException e) {
-            LOGGER.log(Level.SEVERE, "Erro ao carregar próxima tela", e);
-            AlertUtil.showAlert("Erro ao carregar próxima tela: " + e.getMessage(),
-                    Alert.AlertType.ERROR);
-        }
-    }
-
-    /**
-     * Converte o texto de um campo para Integer
-     */
-    private Integer getIntegerValue(TextField field, String fieldName) {
-        try {
-            String text = field.getText().trim();
-            return text.isEmpty() ? null : Integer.parseInt(text);
-        } catch (NumberFormatException ex) {
-            LOGGER.log(Level.INFO, "Formato inválido para " + fieldName + ": " + field.getText(), ex);
-            AlertUtil.showAlert("Insira um valor numérico válido para '" + fieldName + "'!",
-                    Alert.AlertType.ERROR);
+        if (comboBox == null) {
+            LOGGER.log(Level.WARNING, "ComboBox é nulo ao tentar extrair valor");
             return null;
         }
-    }
 
-    /**
-     * Converte o texto de um campo para Double
-     */
-    private Double getDoubleValue(TextField field, String fieldName) {
         try {
-            String text = field.getText().trim();
-            return text.isEmpty() ? null : Double.parseDouble(text.replace(',', '.'));
-        } catch (NumberFormatException ex) {
-            LOGGER.log(Level.INFO, "Formato inválido para " + fieldName + ": " + field.getText(), ex);
-            AlertUtil.showAlert("Insira um valor numérico válido para '" + fieldName + "'!",
-                    Alert.AlertType.ERROR);
+            T selectedItem = comboBox.getSelectionModel().getSelectedItem();
+            return (selectedItem != null) ? extrator.apply(selectedItem) : null;
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Erro ao extrair valor do ComboBox", e);
             return null;
         }
     }
 
     /**
      * Obtém o valor selecionado de um ComboBox desconsiderando a opção padrão
+     * com verificação adicional de nulos
      */
     private String getSelectedValue(ComboBox<String> comboBox) {
-        String value = comboBox.getSelectionModel().getSelectedItem();
-        return (value != null && !value.equals(OPCAO_PADRAO)) ? value : null;
+        if (comboBox == null) {
+            LOGGER.log(Level.WARNING, "ComboBox é nulo ao tentar obter valor selecionado");
+            return null;
+        }
+
+        try {
+            String value = comboBox.getSelectionModel().getSelectedItem();
+            return (value != null && !value.equals(OPCAO_PADRAO)) ? value : null;
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Erro ao obter valor selecionado do ComboBox", e);
+            return null;
+        }
     }
 
     /**

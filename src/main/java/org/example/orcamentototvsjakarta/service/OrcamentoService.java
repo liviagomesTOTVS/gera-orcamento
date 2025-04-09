@@ -85,8 +85,7 @@ public class OrcamentoService {
     }
 
     /**
-     * Processa múltiplos orçamentos (semelhante à procedure sp_processa_orcamento)
-     * Implementa paginação e processamento em lotes para maior eficiência
+     * Processa múltiplos orçamentos garantindo que todos os itens sejam incluídos
      */
     public List<OrcamentoModel> processarOrcamentos(OrcamentoParams params, String mensagem, int limiteProdutos) {
         EntityManager em = null;
@@ -104,20 +103,26 @@ public class OrcamentoService {
             ClienteDTO cliente = obterCliente(em, params.getCodcli());
             BigDecimal valorMaximoOrcamento = params.getValorMaximo();
 
-            int itemCount = 0;
-            BigDecimal currentNumOrca = null;
-            List<Object[]> itensBatch = new ArrayList<>();
-            BigDecimal valorTotalAtual = BigDecimal.ZERO;
+            // Lista principal de produtos a processar
+            List<ProdutoDTO> produtosParaProcessar = new ArrayList<>(produtos);
 
-            // Processar produtos em lotes
-            for (int i = 0; i < produtos.size(); i += BATCH_SIZE) {
-                int endIndex = Math.min(i + BATCH_SIZE, produtos.size());
-                List<ProdutoDTO> lote = produtos.subList(i, endIndex);
+            // Lista para itens que precisam ser processados individualmente
+            List<ProdutoDTO> itensDificeis = new ArrayList<>();
 
-                for (ProdutoDTO produto : lote) {
+            // Processar produtos enquanto houver itens na lista
+            while (!produtosParaProcessar.isEmpty()) {
+                int itemCount = 0;
+                BigDecimal currentNumOrca = null;
+                List<Object[]> itensBatch = new ArrayList<>();
+                BigDecimal valorTotalAtual = BigDecimal.ZERO;
+                List<ProdutoDTO> produtosProcessados = new ArrayList<>();
+
+                // Processar os produtos em lotes para melhor eficiência
+                for (ProdutoDTO produto : produtosParaProcessar) {
                     // Verificações de validação do produto
                     if (produto.getQtEstoque() <= 0) {
                         LOGGER.info("Item CODPROD=" + produto.getCodProd() + " com quantidade zero ou negativa. Pulando item.");
+                        produtosProcessados.add(produto);
                         continue;
                     }
 
@@ -128,19 +133,22 @@ public class OrcamentoService {
                     // Validar valor do item
                     if (valorItem.compareTo(BigDecimal.ZERO) <= 0) {
                         LOGGER.info("Item CODPROD=" + produto.getCodProd() + " geraria valor negativo ou zero. Pulando item.");
+                        produtosProcessados.add(produto);
                         continue;
                     }
 
+                    // Verificar se o item sozinho excede o valor máximo
                     if (valorItem.compareTo(valorMaximoOrcamento) > 0) {
-                        LOGGER.info("Item CODPROD=" + produto.getCodProd() + " excede o limite de valor. Pulando item.");
+                        LOGGER.info("Item CODPROD=" + produto.getCodProd() + " excede o limite individual de valor. Pulando item.");
+                        produtosProcessados.add(produto);
                         continue;
                     }
 
-                    // Verificar se precisa criar novo orçamento
-                    if (currentNumOrca == null || itemCount % limiteProdutos == 0 ||
+                    // Verificar se o item cabe no orçamento atual ou se precisamos criar um novo
+                    if (currentNumOrca == null || itemCount >= limiteProdutos ||
                             valorTotalAtual.add(valorItem).compareTo(valorMaximoOrcamento) > 0) {
 
-                        // Inserir os itens do orçamento anterior se existir
+                        // Se já temos itens no lote, inserimos antes de criar um novo orçamento
                         if (!itensBatch.isEmpty()) {
                             inserirBatchItens(em, itensBatch);
                             atualizarTotaisOrcamento(em, currentNumOrca);
@@ -183,6 +191,7 @@ public class OrcamentoService {
 
                     itensBatch.add(item);
                     valorTotalAtual = valorTotalAtual.add(valorItem);
+                    produtosProcessados.add(produto);
 
                     // Inserir lotes intermediários para evitar consumo excessivo de memória
                     if (itensBatch.size() >= BATCH_SIZE) {
@@ -190,12 +199,64 @@ public class OrcamentoService {
                         itensBatch.clear();
                     }
                 }
-            }
 
-            // Inserir os itens do último orçamento se necessário
-            if (!itensBatch.isEmpty()) {
-                inserirBatchItens(em, itensBatch);
-                atualizarTotaisOrcamento(em, currentNumOrca);
+                // Inserir os itens do último orçamento
+                if (!itensBatch.isEmpty()) {
+                    inserirBatchItens(em, itensBatch);
+                    atualizarTotaisOrcamento(em, currentNumOrca);
+                }
+
+                // Remover os produtos processados da lista principal
+                produtosParaProcessar.removeAll(produtosProcessados);
+
+                // Se não conseguimos processar nenhum produto neste ciclo, mas ainda há produtos na lista,
+                // significa que estamos com itens difíceis que não cabem em nenhum orçamento - vamos processá-los individualmente
+                if (produtosProcessados.isEmpty() && !produtosParaProcessar.isEmpty()) {
+                    LOGGER.warning("Há " + produtosParaProcessar.size() + " itens que não puderam ser agrupados. Processando individualmente.");
+
+                    // Processar cada item individualmente (um orçamento por item)
+                    for (ProdutoDTO produto : produtosParaProcessar) {
+                        BigDecimal precoVenda = calcularPrecoVenda(params.getTipoPreco(), produto.getPUnit(), produto.getPTabela());
+
+                        currentNumOrca = obterProximoNumeroOrcamento(em, params.getCodusur());
+                        inserirCabecalho(em, currentNumOrca, params, cliente);
+                        atualizarProximoNumero(em, params.getCodusur());
+
+                        OrcamentoModel novoOrcamento = new OrcamentoModel(
+                                currentNumOrca.longValue(),
+                                LocalDate.now(),
+                                BigDecimal.ZERO,
+                                params.getCodcli(),
+                                params.getCodusur(),
+                                BigDecimal.ZERO
+                        );
+
+                        orcamentosCriados.add(novoOrcamento);
+
+                        Object[] item = construirItem(
+                                currentNumOrca,
+                                params.getCodcli(),
+                                produto.getCodProd(),
+                                params.getCodusur(),
+                                produto.getQtEstoque(),
+                                produto.getQtUnitEmb(),
+                                precoVenda,
+                                produto.getPTabela(),
+                                1,
+                                produto.getCodSt()
+                        );
+
+                        List<Object[]> itemUnico = new ArrayList<>();
+                        itemUnico.add(item);
+                        inserirBatchItens(em, itemUnico);
+                        atualizarTotaisOrcamento(em, currentNumOrca);
+
+                        LOGGER.info("Item difícil processado individualmente: CODPROD=" + produto.getCodProd());
+                    }
+
+                    // Limpar a lista após processar todos individualmente
+                    produtosParaProcessar.clear();
+                }
             }
 
             // Remover orçamentos sem itens e atualizar os valores totais

@@ -9,6 +9,8 @@
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.effect.Blend?>
 <?import javafx.scene.effect.DropShadow?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.ColumnConstraints?>
 <?import javafx.scene.layout.GridPane?>
@@ -24,21 +26,35 @@
          <children>
                 <HBox alignment="CENTER_RIGHT" layoutX="955.0" layoutY="-10.0" prefHeight="79.0" prefWidth="135.0" style="-fx-padding: 5; -fx-background-color: #0041a6;">
                     <Label style="-fx-text-fill: white; -fx-font-size: 16px;" />
-                    <Button alignment="CENTER" contentDisplay="CENTER" maxHeight="-Infinity" maxWidth="-Infinity" minWidth="-Infinity" onAction="#minimizeWindow" prefHeight="46.0" prefWidth="64.0" snapToPixel="false" style="-fx-background-color: #0041a6; -fx-text-fill: white;" text="-" textFill="RED">
+                    <Button alignment="CENTER" contentDisplay="CENTER" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" onAction="#minimizeWindow" prefHeight="59.0" prefWidth="47.0" snapToPixel="false" style="-fx-background-color: #0041a6; -fx-text-fill: white;" textFill="RED">
                   <font>
                      <Font name="Arial Italic" size="38.0" />
                   </font>
                   <cursor>
                      <Cursor fx:constant="HAND" />
                   </cursor>
+                  <graphic>
+                     <ImageView fitHeight="41.0" fitWidth="19.0" pickOnBounds="true" preserveRatio="true">
+                        <image>
+                           <Image url="@../imgs/minimize.png" />
+                        </image>
+                     </ImageView>
+                  </graphic>
                </Button>
-                    <Button alignment="CENTER" onAction="#closeWindow" prefHeight="50.0" prefWidth="49.0" style="-fx-background-color: #0041a6; -fx-text-fill: white;" text="X">
+                    <Button alignment="CENTER" onAction="#closeWindow" prefHeight="58.0" prefWidth="48.0" style="-fx-background-color: #0041a6; -fx-text-fill: white;">
                   <font>
                      <Font name="Arial Bold" size="24.0" />
                   </font>
                   <cursor>
                      <Cursor fx:constant="HAND" />
                   </cursor>
+                  <graphic>
+                     <ImageView fitHeight="16.0" fitWidth="16.0" pickOnBounds="true" preserveRatio="true">
+                        <image>
+                           <Image url="@../imgs/fehcar.png" />
+                        </image>
+                     </ImageView>
+                  </graphic>
                </Button>
                 </HBox>
             <Text fill="WHITE" layoutX="14.0" layoutY="38.0" strokeType="OUTSIDE" strokeWidth="0.0" text="GERAR ORÇAMENTO">
@@ -382,20 +398,11 @@
                      <Insets right="10.0" />
                   </padding>
                </Label>
-                  <TextField fx:id="txtValorMaxOrcamento"
-                             maxWidth="-Infinity"
-                             minHeight="-Infinity"
-                             minWidth="-Infinity"
-                             prefHeight="25.0"
-                             prefWidth="168.0"
-                             promptText="R$"
-                             GridPane.columnIndex="1"
-                             GridPane.rowIndex="12">
-                      <font>
-                          <Font name="Arial" size="15.0" />
-                      </font>
-                  </TextField>
-
+               <TextField maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="25.0" prefWidth="168.0" promptText="R$" GridPane.columnIndex="1" GridPane.rowIndex="12">
+                  <font>
+                     <Font name="Arial" size="15.0" />
+                  </font>
+               </TextField>
                   <columnConstraints>
                       <ColumnConstraints maxWidth="378.0" minWidth="219.0" prefWidth="328.0" />
                       <ColumnConstraints maxWidth="354.0" minWidth="154.0" prefWidth="328.0" />

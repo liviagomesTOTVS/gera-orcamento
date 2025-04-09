@@ -1,6 +1,7 @@
 package org.example.orcamentototvsjakarta;
 
 import jakarta.persistence.Query;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
@@ -38,6 +39,8 @@ public class TelaItensOrcamentoController {
     @FXML private TableColumn<ItemOrcamentoDTO, BigDecimal> colVenda;
     @FXML private TableColumn<ItemOrcamentoDTO, BigDecimal> colTabela;
     @FXML private TableColumn<ItemOrcamentoDTO, Integer> colCodst;
+    @FXML private TableColumn<ItemOrcamentoDTO, BigDecimal> colTotal;
+
 
     // Formatadores
     private final NumberFormat currencyFormat = NumberFormat.getCurrencyInstance(new Locale("pt", "BR"));
@@ -52,6 +55,7 @@ public class TelaItensOrcamentoController {
      */
     @FXML
     private void initialize() {
+
         configurarColunas();
         configurarTabela();
     }
@@ -68,6 +72,13 @@ public class TelaItensOrcamentoController {
         colVenda.setCellValueFactory(new PropertyValueFactory<>("pvenda"));
         colTabela.setCellValueFactory(new PropertyValueFactory<>("ptabela"));
         colCodst.setCellValueFactory(new PropertyValueFactory<>("codst"));
+
+        colTotal.setCellValueFactory(cellData -> {
+            BigDecimal quantidade = cellData.getValue().getQuantidade();
+            BigDecimal preco = cellData.getValue().getPvenda();
+            return new SimpleObjectProperty<>(quantidade.multiply(preco));
+        });
+
 
         // Configuração de formatação de células
         configurarFormatacoesCelulas();
@@ -94,6 +105,8 @@ public class TelaItensOrcamentoController {
         configurarFormatacaoMonetaria(colCusto);
         configurarFormatacaoMonetaria(colVenda);
         configurarFormatacaoMonetaria(colTabela);
+        configurarFormatacaoMonetaria(colTotal);
+
     }
 
     /**

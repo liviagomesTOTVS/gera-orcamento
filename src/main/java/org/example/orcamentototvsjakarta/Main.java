@@ -56,18 +56,14 @@ public class Main extends Application {
     private void carregarEntidades() throws InterruptedException {
         notifyPreloader(new MensagemNotification("Carregando entidades..."));
         notifyPreloader(new Preloader.ProgressNotification(0.4));
-
         // Código real para carregar entidades ou validar modelo
-
         Thread.sleep(500); // Em produção, remover
     }
 
     private void configurarAmbiente() throws InterruptedException {
         notifyPreloader(new MensagemNotification("Configurando ambiente..."));
         notifyPreloader(new Preloader.ProgressNotification(0.7));
-
         // Código real para configuração
-
         Thread.sleep(500); // Em produção, remover
     }
 
@@ -89,12 +85,10 @@ public class Main extends Application {
         FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/telaParametros12.fxml"));
         Parent root = loader.load();
         Scene scene = new Scene(root);
-
         URL cssUrl = getClass().getResource("/css/main.css");
         if (cssUrl != null) {
             scene.getStylesheets().add(cssUrl.toExternalForm());
         }
-
         stage.initStyle(StageStyle.UNDECORATED);
         stage.setResizable(false);
         stage.setTitle("Parâmetros");
@@ -110,7 +104,6 @@ public class Main extends Application {
 
     @Override
     public void stop() {
-        // Liberar recursos ao encerrar a aplicação
         if (emf != null && emf.isOpen()) {
             emf.close();
         }

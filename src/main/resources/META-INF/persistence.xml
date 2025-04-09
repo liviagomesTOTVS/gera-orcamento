@@ -24,13 +24,22 @@
 <!--            <property name="jakarta.persistence.jdbc.user" value="WINTHOR"/>-->
 <!--            <property name="jakarta.persistence.jdbc.password" value="W1TH0B3T3L"/>-->
 
-            <!-- Dialeto do Hibernate para Oracle -->
+            <!-- Configuração de Dialeto -->
             <property name="hibernate.dialect" value="org.hibernate.dialect.OracleDialect"/>
 
-            <property name="hibernate.hikari.minimumIdle" value="5"/>
-            <property name="hibernate.hikari.maximumPoolSize" value="20"/>
-            <property name="hibernate.hikari.idleTimeout" value="30000"/>
+            <!-- Configurações de Pool de Conexões integrado -->
+            <property name="hibernate.connection.pool_size" value="20"/>
+            <property name="hibernate.c3p0.min_size" value="5"/>
+            <property name="hibernate.c3p0.max_size" value="20"/>
+            <property name="hibernate.c3p0.timeout" value="300"/>
+            <property name="hibernate.c3p0.max_statements" value="50"/>
+            <property name="hibernate.c3p0.idle_test_period" value="3000"/>
 
+            <!-- Otimizações de Performance -->
+            <property name="hibernate.jdbc.batch_size" value="50"/>
+            <property name="hibernate.order_inserts" value="true"/>
+            <property name="hibernate.order_updates" value="true"/>
+            <property name="hibernate.jdbc.fetch_size" value="50"/>
 
             <!-- Configuração de Logs -->
 <!--            <property name="hibernate.show_sql" value="true"/>-->
