@@ -11,27 +11,40 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.Region;
 import javafx.scene.text.TextAlignment;
 import javafx.stage.Stage;
+
+import org.example.orcamentototvsjakarta.DTO.OrcamentoParams;
 import org.example.orcamentototvsjakarta.db.dao.PctributDAO;
 import org.example.orcamentototvsjakarta.db.entidade.Pctribut;
+import org.example.orcamentototvsjakarta.model.OrcamentoModel;
 import org.example.orcamentototvsjakarta.model.ParametrosModel;
 import org.example.orcamentototvsjakarta.model.TributacaoModel;
+import org.example.orcamentototvsjakarta.repository.ProdutoRepository;
+import org.example.orcamentototvsjakarta.service.OrcamentoService;
+import org.example.orcamentototvsjakarta.util.AlertUtil;
+import org.example.orcamentototvsjakarta.util.JPAUtil;
 
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.EntityManagerFactory;
-import jakarta.persistence.ParameterMode;
-import jakarta.persistence.Persistence;
-import jakarta.persistence.StoredProcedureQuery;
+
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
+/**
+ * Controller da tela de seleção de tributações.
+ * Permite selecionar as tributações para gerar orçamentos.
+ */
 public class TelaTributacaoController {
 
+    private static final Logger LOGGER = Logger.getLogger(TelaTributacaoController.class.getName());
+    private static final int BATCH_SIZE = 500; // Tamanho de lote para processamento
+
+    // Componentes FXML
     @FXML private ListView<TributacaoModel> listTributacoes;
     @FXML private Button btnProximo;
     @FXML private Button btnAnterior;
@@ -39,69 +52,48 @@ public class TelaTributacaoController {
     @FXML private Button btnNenhum;
     @FXML private Button btnInverter;
 
+    // Dados e dependências
     private ParametrosModel parametrosModel;
     private List<String> departamentosSelecionados;
-    private static final EntityManagerFactory EMF = Persistence.createEntityManagerFactory("default");
-
     private final PctributDAO pcTributDAO = new PctributDAO();
     private final ObservableList<TributacaoModel> tributacoes = FXCollections.observableArrayList();
+    private OrcamentoService orcamentoService;
+    private ProdutoRepository produtoRepository;
 
-    // ---------------------- INIT ----------------------
-
+    /**
+     * Inicializa o controller após a injeção dos componentes FXML
+     */
     @FXML
     public void initialize() {
+        orcamentoService = new OrcamentoService();
+        produtoRepository = new ProdutoRepository();
         configurarListView();
         configurarBotoes();
-        carregarTributacoes();
     }
 
+    /**
+     * Define o modelo de parâmetros recebido da tela anterior
+     *
+     * @param parametrosModel Modelo com os parâmetros do orçamento
+     */
     public void setParametrosModel(ParametrosModel parametrosModel) {
-        this.parametrosModel = parametrosModel;
+        this.parametrosModel = Objects.requireNonNull(parametrosModel, "ParametrosModel não pode ser nulo");
     }
 
+    /**
+     * Define os departamentos selecionados na tela anterior
+     *
+     * @param departamentosSelecionados Lista de códigos de departamentos selecionados
+     */
     public void setDepartamentosSelecionados(List<String> departamentosSelecionados) {
-        this.departamentosSelecionados = departamentosSelecionados;
+        this.departamentosSelecionados = Objects.requireNonNull(departamentosSelecionados,
+                "Departamentos selecionados não podem ser nulos");
         carregarTributacoes();
     }
-    // ---------------------- CONFIGURAÇÃO UI ----------------------
 
-    private void configurarListView() {
-        listTributacoes.setItems(tributacoes);
-
-        listTributacoes.setCellFactory(param -> new ListCell<>() {
-            private final CheckBox checkBox = new CheckBox();
-            private final Label lblCodigo = new Label();
-            private final Label lblDescricao = new Label();
-            private final HBox hBox = new HBox(10, checkBox, lblCodigo, lblDescricao);
-
-            {
-                checkBox.setCursor(Cursor.HAND);
-                checkBox.setMinWidth(43);
-                lblCodigo.setMinWidth(80);
-                lblDescricao.setMinWidth(200);
-                lblCodigo.setTextAlignment(TextAlignment.CENTER);
-
-                checkBox.setOnAction(event -> {
-                    TributacaoModel trib = getItem();
-                    if (trib != null) trib.setSelecionado(checkBox.isSelected());
-                });
-            }
-
-            @Override
-            protected void updateItem(TributacaoModel trib, boolean empty) {
-                super.updateItem(trib, empty);
-                if (empty || trib == null) {
-                    setGraphic(null);
-                } else {
-                    lblCodigo.setText(String.valueOf(trib.getCodigo()));
-                    lblDescricao.setText(trib.getDescricao());
-                    checkBox.setSelected(trib.isSelecionado());
-                    setGraphic(hBox);
-                }
-            }
-        });
-    }
-
+    /**
+     * Configura os listeners dos botões
+     */
     private void configurarBotoes() {
         btnProximo.setOnAction(event -> onProximo());
         btnAnterior.setOnAction(event -> onAnterior());
@@ -110,347 +102,375 @@ public class TelaTributacaoController {
         btnInverter.setOnAction(event -> inverterSelecao());
     }
 
-    // ---------------------- FUNÇÕES DE SELEÇÃO ----------------------
+    /**
+     * Configura o ListView com o factory personalizado para células
+     */
+    private void configurarListView() {
+        listTributacoes.setItems(tributacoes);
+        listTributacoes.setCellFactory(this::criarCelulaPersonalizada);
+    }
 
+    /**
+     * Cria um ListCell personalizado para as tributações
+     */
+    private ListCell<TributacaoModel> criarCelulaPersonalizada(ListView<TributacaoModel> listView) {
+        return new ListCell<>() {
+            private final CheckBox checkBox = new CheckBox();
+            private final Label lblCodigo = new Label();
+            private final Label lblDescricao = new Label();
+            private final HBox hBox = new HBox(10, checkBox, lblCodigo, lblDescricao);
+
+            {
+                // Inicialização dos componentes
+                configurarComponentesCelula();
+            }
+
+            private void configurarComponentesCelula() {
+                checkBox.setOnAction(event -> {
+                    TributacaoModel tributacao = getItem();
+                    if (tributacao != null) {
+                        tributacao.setSelecionado(checkBox.isSelected());
+                    }
+                });
+                checkBox.setCursor(Cursor.HAND);
+                checkBox.setMinWidth(43);
+                lblCodigo.setMinWidth(80);
+                lblCodigo.setTextAlignment(TextAlignment.CENTER);
+                lblDescricao.setMinWidth(200);
+            }
+
+            @Override
+            protected void updateItem(TributacaoModel tributacao, boolean empty) {
+                super.updateItem(tributacao, empty);
+                if (empty || tributacao == null) {
+                    setGraphic(null);
+                } else {
+                    lblCodigo.setText(tributacao.getCodigo().toString());
+                    lblDescricao.setText(tributacao.getDescricao());
+                    checkBox.setSelected(tributacao.isSelecionado());
+                    setGraphic(hBox);
+                }
+            }
+        };
+    }
+
+    /**
+     * Carrega as tributações do banco de dados
+     */
     private void carregarTributacoes() {
-        tributacoes.clear();
-        List<Pctribut> lista = pcTributDAO.buscarTodos();
-        lista.sort(Comparator.comparing(Pctribut::getId));
-        for (Pctribut trib : lista) {
-            tributacoes.add(new TributacaoModel(false, trib.getId(), trib.getMensagem()));
+        try {
+            List<Pctribut> listaTributacoes = pcTributDAO.buscarTodos();
+            listaTributacoes.sort(Comparator.comparing(Pctribut::getId));
+
+            tributacoes.clear();
+            for (Pctribut trib : listaTributacoes) {
+                TributacaoModel model = new TributacaoModel(false, trib.getId(), trib.getMensagem());
+                tributacoes.add(model);
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Erro ao carregar tributações", e);
+            AlertUtil.showAlert("Erro ao carregar tributações: " + e.getMessage(),
+                    Alert.AlertType.ERROR);
         }
     }
 
+    /**
+     * Seleciona ou deseleciona todas as tributações
+     */
     private void selecionarTodos(boolean selecionar) {
-        tributacoes.forEach(t -> t.setSelecionado(selecionar));
+        tributacoes.forEach(trib -> trib.setSelecionado(selecionar));
         listTributacoes.refresh();
     }
 
+    /**
+     * Inverte a seleção de todas as tributações
+     */
     private void inverterSelecao() {
-        tributacoes.forEach(t -> t.setSelecionado(!t.isSelecionado()));
+        tributacoes.forEach(trib -> trib.setSelecionado(!trib.isSelecionado()));
         listTributacoes.refresh();
     }
 
+    /**
+     * Avança para a próxima tela, gerando os orçamentos
+     */
     @FXML
     private void onProximo() {
-        List<String> departamentosSelecionadosLista = new ArrayList<>();
-        List<String> tributacoesSelecionadasLista = new ArrayList<>();
-        List<String> codstLista = new ArrayList<>();
-        List<String> mensagensLista = new ArrayList<>();
-
-        // Coletar departamentos selecionados
-        for (String codigoDepartamento : departamentosSelecionados) {
-            departamentosSelecionadosLista.add(codigoDepartamento);
-        }
-
-        if (departamentosSelecionadosLista.isEmpty()) {
-            showAlert("Selecione pelo menos um departamento!", Alert.AlertType.WARNING);
-            return;
-        }
-
-        // Coletar tributações selecionadas
-        for (TributacaoModel trib : listTributacoes.getItems()) {
-            if (trib.isSelecionado()) {
-                tributacoesSelecionadasLista.add(trib.getCodigo().toString());
-                codstLista.add(trib.getCodigo().toString());
-                mensagensLista.add(trib.getDescricao());
-            }
-        }
-
-        if (tributacoesSelecionadasLista.isEmpty()) {
-            showAlert("Selecione pelo menos uma tributação!", Alert.AlertType.WARNING);
-            return;
-        }
-
-
+        EntityManager em = null;
         try {
-            // Extração dos valores dos parâmetros
-            int codcli = Integer.parseInt(parametrosModel.getCliente().split(" - ")[0].trim());
-            int rca = Integer.parseInt(parametrosModel.getRca().split(" - ")[0].trim());
-            int planoPagamento = Integer.parseInt(parametrosModel.getPlanoPagamento().split(" - ")[0].trim());
-            int codativ = Integer.parseInt(parametrosModel.getRamoAtividade().split(" - ")[0].trim());
-            String cobranca = parametrosModel.getCobranca().split(" - ")[0].trim();
-            int funcionario = 0;
-            int supervisor = Integer.parseInt(parametrosModel.getSupervisor().split(" - ")[0].trim());
-            int caixa = 0;
-
-            // Concatenação de departamentos e tributações para envio à procedure (caso ainda seja necessário)
-            String departamentosConcatenados = String.join(",", departamentosSelecionadosLista);
-            String codstConcatenado = String.join(",", codstLista);
-            String mensagensConcatenadas = String.join(" | ", mensagensLista);
-
-            // Extrai o código da filial
-            String filialCode = parametrosModel.getFilial().split(" - ")[0].trim();
-            int limiteProdutos = parametrosModel.getQtdeMaxItens();
-            String valorMaxOrcamento = parametrosModel.getValorMaxOrcamento().toString();
-
-
-            List<Integer> listaDepartamentosInt = new ArrayList<>();
-            for (String dep : departamentosSelecionadosLista) {
-                listaDepartamentosInt.add(Integer.parseInt(dep.trim()));
-            }
-            List<Integer> listaCodstInt = new ArrayList<>();
-            for (String cod : codstLista) {
-                listaCodstInt.add(Integer.parseInt(cod.trim()));
-            }
-
-            // Constrói as cláusulas IN dinamicamente
-            String inClauseDep = "(" + listaDepartamentosInt.stream()
-                    .map(String::valueOf)
-                    .collect(Collectors.joining(",")) + ")";
-            String inClauseCodst = "(" + listaCodstInt.stream()
-                    .map(String::valueOf)
-                    .collect(Collectors.joining(",")) + ")";
-
-            // Criando EntityManager e iniciando a transação
-            EntityManager em = EMF.createEntityManager();
-            em.getTransaction().begin();
-
-            // --- Executa a query nativa para seleção dos produtos ---
-            String sql = "SELECT * FROM ( " +
-                    "  SELECT ROWNUM NUMSEQ, CODPROD, QTUNITEMB, QTESTOQUE, QTEST, QTESTGER, PUNIT, PTABELA, CODST " +
-                    "  FROM ( " +
-                    "      SELECT " +
-                    "          PCPRODUT.CODPROD, " +
-//                    "          ROWNUM NUMSEQ, " +
-                    "          PCPRODUT.DESCRICAO, " +
-                    "          PCPRODUT.EMBALAGEM, " +
-                    "          PCPRODUT.UNIDADE, " +
-                    "          NVL(VIEWMENOREMBALAGEM.CODAUXILIAR, PCPRODUT.CODAUXILIAR) CODAUXILIAR, " +
-                    "          PCFORNEC.CODFORNEC, " +
-                    "          PCFORNEC.FORNECEDOR, " +
-                    "          PCMARCA.CODMARCA, " +
-                    "          PCMARCA.MARCA, " +
-                    "          PCPRODUT.CODFAB, " +
-                    "          PCPRODUT.OBS2, " +
-                    "          NVL(VIEWMENOREMBALAGEM.QTUNIT, PCPRODUT.QTUNIT) QTUNITEMB, " +
-                    "          PCPRODUT.CODINTERNO, " +
-                    "          PCPRODUT.NUMORIGINAL, " +
-                    "          (NVL(PCEST.QTEST, 0) - NVL(PCEST.QTESTGER, 0)) - NVL((SELECT SUM(PCORCAVENDAI.QT) " +
-                    "              FROM PCORCAVENDAI, PCORCAVENDAC " +
-                    "              WHERE PCORCAVENDAI.NUMORCA = PCORCAVENDAC.NUMORCA " +
-                    "                AND PCORCAVENDAI.CODPROD = PCPRODUT.CODPROD " +
-                    "                AND NVL(PCORCAVENDAC.CODFILIALNF, PCORCAVENDAC.CODFILIAL) = PCEST.CODFILIAL " +
-                    "                AND PCORCAVENDAC.NUMPED IS NULL " +
-                    "                AND PCORCAVENDAC.NUMCCF IS NULL " +
-                    "                AND PCORCAVENDAC.DTCANCEL IS NULL), 0) QTPEDIDA, " +
-                    "          CEIL(((NVL(PCEST.QTEST, 0) - NVL(PCEST.QTESTGER, 0)) - NVL((SELECT SUM(PCORCAVENDAI.QT) " +
-                    "              FROM PCORCAVENDAI, PCORCAVENDAC " +
-                    "              WHERE PCORCAVENDAI.NUMORCA = PCORCAVENDAC.NUMORCA " +
-                    "                AND PCORCAVENDAI.CODPROD = PCPRODUT.CODPROD " +
-                    "                AND NVL(PCORCAVENDAC.CODFILIALNF, PCORCAVENDAC.CODFILIAL) = PCEST.CODFILIAL " +
-                    "                AND PCORCAVENDAC.NUMPED IS NULL " +
-                    "                AND PCORCAVENDAC.NUMCCF IS NULL " +
-                    "                AND PCORCAVENDAC.FUT_DATACRIACAO IS NOT NULL " +
-                    "                AND PCORCAVENDAC.DTCANCEL IS NULL), 0)) * 1 - (PCEST.QTESTGER * -1)) AS QTESTOQUE, " +
-                    "          PCEST.QTEST, " +
-                    "          PCEST.QTESTGER, " +
-                    "          DECODE(NVL(PCEST.CUSTOCONT, 0), 0, NVL(PCEST.CUSTOFIN, 0), PCEST.CUSTOCONT) PUNIT, " +
-                    "          NVL(PCPRODUT.PVENDA, 0) AS PTABELA, " +
-                    "          PCTRIBUT.CODST " +
-                    "      FROM PCPRODUT, PCFORNEC, PCMARCA, PCEST, PCTABPR, PCCLIENT, PCPRACA, " +
-                    "           PCTRIBUT, PCTRIBPISCOFINS, PCCONSUM, PCPLPAG, VIEWMENOREMBALAGEM " +
-                    "      WHERE PCPRODUT.CODPROD = PCEST.CODPROD " +
-                    "        AND PCPRODUT.DTEXCLUSAO IS NULL " +
-                    "        AND PCPRODUT.CODFORNEC = PCFORNEC.CODFORNEC(+) " +
-                    "        AND PCPRODUT.CODMARCA = PCMARCA.CODMARCA(+) " +
-                    "        AND PCCLIENT.CODPRACA = PCPRACA.CODPRACA " +
-                    "        AND PCTABPR.CODPROD = PCPRODUT.CODPROD " +
-                    "        AND PCTABPR.NUMREGIAO = PCPRACA.NUMREGIAO " +
-                    "        AND PCEST.CODFILIAL = VIEWMENOREMBALAGEM.CODFILIAL(+) " +
-                    "        AND PCEST.CODPROD = VIEWMENOREMBALAGEM.CODPROD(+) " +
-                    "        AND ((PCCONSUM.USATRIBUTACAOPORUF = 'S' " +
-                    "              AND EXISTS (SELECT 1 FROM PCTABTRIB " +
-                    "                          WHERE PCTABTRIB.CODPROD = PCEST.CODPROD " +
-                    "                            AND PCTABTRIB.CODFILIALNF = PCEST.CODFILIAL " +
-                    "                            AND PCTABTRIB.UFDESTINO = PCCLIENT.ESTENT " +
-                    "                            AND PCTABTRIB.CODST = PCTRIBUT.CODST)) " +
-                    "           OR (PCCONSUM.USATRIBUTACAOPORUF = 'N' " +
-                    "               AND (PCTRIBUT.CODST = PCTABPR.CODST))) " +
-                    "        AND ((PCCONSUM.USATRIBUTACAOPORUF = 'S' " +
-                    "              AND EXISTS (SELECT 1 FROM PCTABTRIB " +
-                    "                          WHERE PCTABTRIB.CODPROD = PCEST.CODPROD " +
-                    "                            AND PCTABTRIB.CODFILIALNF = PCEST.CODFILIAL " +
-                    "                            AND PCTABTRIB.UFDESTINO = PCCLIENT.ESTENT " +
-                    "                            AND PCTABTRIB.CODTRIBPISCOFINS = PCTRIBPISCOFINS.CODTRIBPISCOFINS)) " +
-                    "           OR (PCCONSUM.USATRIBUTACAOPORUF = 'N' " +
-                    "               AND (PCTRIBPISCOFINS.CODTRIBPISCOFINS = PCTABPR.CODTRIBPISCOFINS))) " +
-                    "        AND (NVL(PCEST.QTEST, 0) - NVL(PCEST.QTESTGER, 0)) - NVL((SELECT SUM(PCORCAVENDAI.QT) " +
-                    "               FROM PCORCAVENDAI, PCORCAVENDAC " +
-                    "               WHERE PCORCAVENDAI.NUMORCA = PCORCAVENDAC.NUMORCA " +
-                    "                 AND PCORCAVENDAI.CODPROD = PCPRODUT.CODPROD " +
-                    "                 AND NVL(PCORCAVENDAC.CODFILIALNF, PCORCAVENDAC.CODFILIAL) = PCEST.CODFILIAL " +
-                    "                 AND PCORCAVENDAC.NUMPED IS NULL " +
-                    "                 AND PCORCAVENDAC.NUMCCF IS NULL " +
-                    "                 AND PCORCAVENDAC.FUT_DATACRIACAO IS NOT NULL " +
-                    "                 AND PCORCAVENDAC.DTCANCEL IS NULL), 0) > 0 " +
-                    "        AND PCPRODUT.CODEPTO IN " + inClauseDep + " " +
-                    "        AND PCTRIBUT.CODST IN " + inClauseCodst + " " +
-                    "        AND PCCLIENT.CODCLI = :codcli " +
-                    "        AND PCPLPAG.CODPLPAG = :codplpag " +
-                    "        AND PCEST.CODFILIAL = :filial " +
-                    "    ) " +   // Fecha a subquery interna
-                    "  ) " +    // Fecha a subquery intermediária
-                    "ORDER BY DBMS_RANDOM.RANDOM";
-
-            System.out.println("\n\nQuery Final: " + sql);
-
-
-            // Após executar a consulta nativa e obter os resultados
-            List<Object[]> results = em.createNativeQuery(sql)
-                    .setParameter("codcli", codcli)
-                    .setParameter("codplpag", planoPagamento)
-                    .setParameter("filial", filialCode)
-                    .getResultList();
-
-
-            System.out.println("Cliente: " + parametrosModel.getCliente());
-
-            System.out.println("Produtos encontrados: " + results.size());
-
-            if (results.isEmpty()) {
-                System.out.println("⚠️ Nenhum produto retornado para o cliente " + codcli + " com plano " + planoPagamento + ", filial " + filialCode);
-                showAlert("Nenhum produto foi selecionado para este cliente.\nVerifique se ele possui tributação válida.", Alert.AlertType.WARNING);
+            // Validar seleções
+            if (!validarSelecoes()) {
                 return;
             }
 
+            em = JPAUtil.getEntityManager();
 
-            // Construir a string de produtos no formato esperado
-            StringBuilder produtosConcatenados = new StringBuilder();
+            // Exibir indicador de progresso
+            btnProximo.setDisable(true);
+            btnProximo.setText("Processando...");
 
-            for (Object[] row : results) {
-                Integer numSeq = ((Number) row[0]).intValue();
-                Integer codProd = ((Number) row[1]).intValue();
-                Double qtUnitEmb = ((Number) row[2]).doubleValue();
-                Double qtEstoque = ((Number) row[3]).doubleValue(); // <- usado como base do filtro
-                Double qtest = ((Number) row[4]).doubleValue();
-                Double qtestger = ((Number) row[5]).doubleValue();
-                Double pUnit = ((Number) row[6]).doubleValue();
-                Double pTabela = ((Number) row[7]).doubleValue();
-                Integer codSt = ((Number) row[8]).intValue();
+            // Extrair dados dos parâmetros
+            OrcamentoParams params = criarParametrosOrcamento();
 
-                // Ignorar produtos com quantidade <= 0
-                if (qtEstoque <= 0) {
-                    continue;
-                }
+            // Obter tributações e departamentos selecionados
+            List<Short> tributacoesSelecionadas = getTributacoesSelecionadas();
+            List<Integer> departamentosSelecionados = getDepartamentosSelecionados();
 
-                produtosConcatenados.append(codProd).append("|")
-                        .append(qtUnitEmb).append("|")
-                        .append(qtEstoque).append("|")
-                        .append(pUnit).append("|")
-                        .append(pTabela).append("|")
-                        .append(codSt).append("|")
-                        .append(numSeq).append(";");
-
-                System.out.println("Produto: NUMSEQ=" + numSeq + ", CODPROD=" + codProd);
-            }
-
-            // Remove o último ";" se houver produtos
-            String produtosString = produtosConcatenados.length() > 0
-                    ? produtosConcatenados.substring(0, produtosConcatenados.length() - 1)
-                    : "";
+            // Buscar produtos com base nos critérios com paginação
+            String produtosString = buscarEFormatarProdutos(em, params, tributacoesSelecionadas, departamentosSelecionados);
 
             if (produtosString.isEmpty()) {
-                showAlert("Nenhum produto foi selecionado!", Alert.AlertType.WARNING);
+                AlertUtil.showAlert("Nenhum produto foi selecionado para este cliente.\n" +
+                        "Verifique se ele possui tributação válida.", Alert.AlertType.WARNING);
                 return;
             }
 
-            String tipoPrecoSelecionado = parametrosModel.getTipoPreco(); // Deve retornar "C" ou "V"
+            // Processar orçamentos
+            List<OrcamentoModel> orcamentosCriados = orcamentoService.processarOrcamentos(
+                    params, produtosString, params.getValorMaximo().intValue());
 
-
-            // Agora, chama a procedure passando os produtos em p_mensagem
-            StoredProcedureQuery sp = em.createStoredProcedureQuery("sp_processa_orcamento");
-            sp.registerStoredProcedureParameter(1, Integer.class, ParameterMode.IN);  // p_codcli
-            sp.registerStoredProcedureParameter(2, String.class, ParameterMode.IN);   // p_codativ
-            sp.registerStoredProcedureParameter(3, String.class, ParameterMode.IN);   // p_cobranca
-            sp.registerStoredProcedureParameter(4, String.class, ParameterMode.IN);   // p_plano_pagamento
-            sp.registerStoredProcedureParameter(5, String.class, ParameterMode.IN);   // p_funcionario
-            sp.registerStoredProcedureParameter(6, String.class, ParameterMode.IN);   // p_rca
-            sp.registerStoredProcedureParameter(7, String.class, ParameterMode.IN);   // p_supervisor
-            sp.registerStoredProcedureParameter(8, String.class, ParameterMode.IN);   // p_caixa
-            sp.registerStoredProcedureParameter(9, String.class, ParameterMode.IN);   // p_codst
-            sp.registerStoredProcedureParameter(10, String.class, ParameterMode.IN);  // p_mensagem (produtos)
-            sp.registerStoredProcedureParameter(11, String.class, ParameterMode.IN);  // p_departamento
-            sp.registerStoredProcedureParameter(12, String.class, ParameterMode.IN);  // p_codfilial
-            sp.registerStoredProcedureParameter(13, String.class, ParameterMode.IN);  // p_codfilialnf
-            sp.registerStoredProcedureParameter(14, Integer.class, ParameterMode.IN); // p_limite_produtos
-            sp.registerStoredProcedureParameter(15, String.class, ParameterMode.OUT); // novo param
-            sp.registerStoredProcedureParameter(16, String.class, ParameterMode.IN); // p_valor_max_orcamento
-            sp.registerStoredProcedureParameter(17, String.class, ParameterMode.IN);
-
-
-            sp.setParameter(1, codcli);
-            sp.setParameter(2, String.valueOf(codativ));
-            sp.setParameter(3, cobranca);
-            sp.setParameter(4, String.valueOf(planoPagamento));
-            sp.setParameter(5, String.valueOf(funcionario));
-            sp.setParameter(6, String.valueOf(rca));
-            sp.setParameter(7, String.valueOf(supervisor));
-            sp.setParameter(8, String.valueOf(caixa));
-            sp.setParameter(9, codstConcatenado);  // Mantido por compatibilidade, mas não usado
-            sp.setParameter(10, produtosString);   // Passa os produtos aqui
-            sp.setParameter(11, departamentosConcatenados);  // Mantido por compatibilidade, mas não usado
-            sp.setParameter(12, filialCode);
-            sp.setParameter(13, filialCode);
-            sp.setParameter(14, limiteProdutos);
-            sp.setParameter(16, valorMaxOrcamento);
-            sp.setParameter(17, tipoPrecoSelecionado);
-
-
-            System.out.println("\n\nprodutosString: " + produtosString);
-
-            System.out.println("=== CHAMADA DA PROCEDURE COM PARÂMETROS ===");
-            System.out.println("p_codcli: " + codcli);
-            System.out.println("p_codativ: " + codativ);
-            System.out.println("p_cobranca: " + cobranca);
-            System.out.println("p_plano_pagamento: " + planoPagamento);
-            System.out.println("p_funcionario: " + funcionario);
-            System.out.println("p_rca: " + rca);
-            System.out.println("p_supervisor: " + supervisor);
-            System.out.println("p_caixa: " + caixa);
-            System.out.println("p_codst: " + codstConcatenado);
-            System.out.println("p_mensagem: " + produtosString);
-            System.out.println("p_departamento: " + departamentosConcatenados);
-            System.out.println("p_codfilial: " + filialCode);
-            System.out.println("p_codfilialnf: " + filialCode);
-            System.out.println("p_limite_produtos: " + limiteProdutos);
-            System.out.println("p_valor_max_orcamento: " + valorMaxOrcamento);
-            System.out.println("===========================================");
-
-
-            sp.execute();
-            String numorcasGerados = (String) sp.getOutputParameterValue(15);
-
-            em.getTransaction().commit();
-            em.close();
-
-            showAlert("Procedimento executado com sucesso!", Alert.AlertType.INFORMATION);
-            try {
-                FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/telaOrcamentos.fxml"));
-                Parent root = loader.load();
-
-                TelaOrcamentosController controller = loader.getController();
-                controller.setNumorcasGerados(numorcasGerados);
-
-                Stage stage = (Stage) btnProximo.getScene().getWindow();
-                //stage.initStyle(StageStyle.UNDECORATED);
-                stage.setScene(new Scene(root));
-            } catch (IOException e) {
-                showAlert("Erro ao carregar a tela de orçamentos: " + e.getMessage(), Alert.AlertType.ERROR);
+            if (orcamentosCriados.isEmpty()) {
+                AlertUtil.showAlert("Nenhum orçamento foi criado!", Alert.AlertType.WARNING);
+                return;
             }
-        } catch (Exception ex) {
-            ex.printStackTrace(); // Mostra onde exatamente falhou no console
-            showAlert("Erro ao chamar o procedimento: " + ex.getMessage(), Alert.AlertType.ERROR);
+
+            // Extrair números dos orçamentos gerados
+            String numorcasGerados = orcamentosCriados.stream()
+                    .map(orc -> String.valueOf(orc.getId()))
+                    .collect(Collectors.joining(","));
+
+            AlertUtil.showAlert("Orçamentos gerados com sucesso!", Alert.AlertType.INFORMATION);
+
+            // Navegar para a tela de orçamentos
+            navegarParaTelaOrcamentos(numorcasGerados);
+
+        } catch (NumberFormatException e) {
+            LOGGER.log(Level.SEVERE, "Erro ao converter valores", e);
+            AlertUtil.showAlert("Erro ao converter valores: " + e.getMessage(),
+                    Alert.AlertType.ERROR);
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Erro ao processar orçamentos", e);
+            AlertUtil.showAlert("Erro ao processar orçamentos: " + e.getMessage(),
+                    Alert.AlertType.ERROR);
+        } finally {
+            if (em != null) {
+                em.close();
+            }
+            btnProximo.setDisable(false);
+            btnProximo.setText("Próximo");
         }
     }
 
-    // ---------------------- AÇÃO: BOTÃO ANTERIOR ----------------------
+    /**
+     * Busca e formata produtos para processamento, usando paginação
+     */
+    private String buscarEFormatarProdutos(EntityManager em, OrcamentoParams params,
+                                           List<Short> tributacoesSelecionadas,
+                                           List<Integer> departamentosSelecionados) {
+        StringBuilder produtosConcatenados = new StringBuilder();
 
+        try {
+            int offset = 0;
+            int pageSize = BATCH_SIZE;
+            List<Object[]> produtosPage;
+
+            do {
+                produtosPage = produtoRepository.buscarProdutosPaginados(
+                        em,
+                        params.getCodcli(),
+                        params.getCodplpag().shortValue(),
+                        params.getCodfilial(),
+                        departamentosSelecionados,
+                        tributacoesSelecionadas,
+                        params.getValorMaximo().intValue(),
+                        offset,
+                        pageSize
+                );
+
+                for (Object[] row : produtosPage) {
+                    Integer codProd = ((Number) row[1]).intValue();
+                    Double qtUnitEmb = ((Number) row[2]).doubleValue();
+                    Double qtEstoque = ((Number) row[3]).doubleValue();
+                    Double pUnit = ((Number) row[6]).doubleValue();
+                    Double pTabela = ((Number) row[7]).doubleValue();
+                    Integer codSt = ((Number) row[8]).intValue();
+
+                    produtosConcatenados.append(codProd).append("|")
+                            .append(qtUnitEmb).append("|")
+                            .append(qtEstoque).append("|")
+                            .append(pUnit).append("|")
+                            .append(pTabela).append("|")
+                            .append(codSt).append(";");
+                }
+
+                offset += pageSize;
+            } while (!produtosPage.isEmpty() && produtosPage.size() == pageSize);
+
+            // Remove o último ";" se houver produtos
+            if (produtosConcatenados.length() > 0) {
+                produtosConcatenados.setLength(produtosConcatenados.length() - 1);
+            }
+
+            return produtosConcatenados.toString();
+
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Erro ao buscar produtos", e);
+            throw new RuntimeException("Erro ao buscar produtos: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Obtém a lista de tributações selecionadas
+     */
+    private List<Short> getTributacoesSelecionadas() {
+        return tributacoes.stream()
+                .filter(TributacaoModel::isSelecionado)
+                .map(TributacaoModel::getCodigo)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Obtém a lista de departamentos selecionados como inteiros
+     */
+    private List<Integer> getDepartamentosSelecionados() {
+        return departamentosSelecionados.stream()
+                .map(dep -> Integer.parseInt(dep.trim()))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Valida as seleções de departamentos e tributações
+     */
+    private boolean validarSelecoes() {
+        if (departamentosSelecionados == null || departamentosSelecionados.isEmpty()) {
+            AlertUtil.showAlert("Selecione pelo menos um departamento!", Alert.AlertType.WARNING);
+            return false;
+        }
+
+        List<TributacaoModel> tributacoesSelecionadas = tributacoes.stream()
+                .filter(TributacaoModel::isSelecionado)
+                .collect(Collectors.toList());
+
+        if (tributacoesSelecionadas.isEmpty()) {
+            AlertUtil.showAlert("Selecione pelo menos uma tributação!", Alert.AlertType.WARNING);
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Cria o objeto de parâmetros para geração do orçamento
+     */
+    private OrcamentoParams criarParametrosOrcamento() {
+        try {
+            // Extração dos valores dos parâmetros
+            int codcli = extrairCodigoNumerico(parametrosModel.getCliente());
+            int rca = extrairCodigoNumerico(parametrosModel.getRca());
+            int planoPagamento = extrairCodigoNumerico(parametrosModel.getPlanoPagamento());
+            int codativ = extrairCodigoNumerico(parametrosModel.getRamoAtividade());
+            String cobranca = extrairCodigoTexto(parametrosModel.getCobranca());
+            int supervisor = extrairCodigoNumerico(parametrosModel.getSupervisor());
+            String filialCode = extrairCodigoTexto(parametrosModel.getFilial());
+
+            int limiteProdutos = parametrosModel.getQtdeMaxItens();
+            Double valormax = parametrosModel.getValorMaxOrcamento().doubleValue();
+            String tipoPreco = parametrosModel.getTipoPreco();
+
+            // Logs para debug
+            LOGGER.info("cobranca: " + cobranca);
+            LOGGER.info("filial: " + filialCode);
+
+
+            // Criar o objeto OrcamentoParams
+            OrcamentoParams params = new OrcamentoParams();
+            params.setCodcli(codcli);
+            params.setCodatv1(codativ);
+            params.setCodcob(cobranca);
+            params.setCodplpag((short) planoPagamento);
+            params.setCodusur((short) rca);
+            params.setCodsupervisor((short) supervisor);
+            params.setCodfilial(Integer.valueOf(filialCode));
+
+
+            params.setValorMaximo(valormax);
+            params.setTipoPreco(tipoPreco.toUpperCase());
+            params.setNumprevenda("0");
+
+            return params;
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Erro ao extrair parâmetros", e);
+            throw new IllegalArgumentException("Erro ao extrair parâmetros: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Extrai o código numérico de uma string no formato "código - descrição"
+     */
+    private int extrairCodigoNumerico(String texto) {
+        if (texto == null || texto.isEmpty()) {
+            throw new IllegalArgumentException("Valor não pode ser nulo ou vazio");
+        }
+
+        // Caso especial para valores como "Não informado"
+        if (texto.equals("Não informado")) {
+            return 0;
+        }
+
+        // Extrai apenas a parte antes do " - "
+        String[] partes = texto.split(" - ", 2);
+        String codigoTexto = partes[0].trim();
+
+        try {
+            return Integer.parseInt(codigoTexto);
+        } catch (NumberFormatException e) {
+            LOGGER.log(Level.SEVERE, "Não foi possível converter para número: " + codigoTexto, e);
+            throw new IllegalArgumentException("Valor inválido: " + codigoTexto);
+        }
+    }
+
+    /**
+     * Extrai o código de texto de uma string no formato "código - descrição"
+     */
+    private String extrairCodigoTexto(String texto) {
+        if (texto == null || texto.isEmpty()) {
+            throw new IllegalArgumentException("Valor não pode ser nulo ou vazio");
+        }
+
+        // Extrai apenas a parte antes do " - "
+        String[] partes = texto.split(" - ", 2);
+        return partes[0].trim();
+    }
+
+    /**
+     * Navega para a tela de orçamentos
+     */
+    private void navegarParaTelaOrcamentos(String numorcasGerados) throws IOException {
+        FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/telaOrcamentos.fxml"));
+        Parent root = loader.load();
+
+        TelaOrcamentosController controller = loader.getController();
+        controller.setNumorcasGerados(numorcasGerados);
+
+        Stage stage = (Stage) btnProximo.getScene().getWindow();
+        stage.setScene(new Scene(root));
+    }
+
+    /**
+     * Volta para a tela anterior
+     */
     private void onAnterior() {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/telaDepartamentos16.fxml"));
             Parent root = loader.load();
+
             TelaDepartamentoController controller = loader.getController();
+            if (controller == null) {
+                AlertUtil.showAlert("Erro ao carregar controlador da tela de departamentos!",
+                        Alert.AlertType.ERROR);
+                return;
+            }
+
+            // Passar os parâmetros corretamente ao voltar
             controller.setParametrosModel(parametrosModel);
 
             Stage novaJanela = new Stage();
@@ -458,43 +478,39 @@ public class TelaTributacaoController {
             novaJanela.setScene(new Scene(root));
             novaJanela.show();
 
-            ((Stage) btnAnterior.getScene().getWindow()).close();
+            // Fecha a janela atual
+            fecharJanelaAtual();
+
         } catch (IOException e) {
-            showAlert("Erro ao carregar a tela de departamentos!", Alert.AlertType.ERROR);
+            LOGGER.log(Level.SEVERE, "Erro ao carregar tela de departamentos", e);
+            AlertUtil.showAlert("Erro ao carregar a tela de departamentos: " + e.getMessage(),
+                    Alert.AlertType.ERROR);
         }
     }
 
-
-    // ---------------------- UTILITÁRIOS ----------------------
-
-    private void showAlert(String message, Alert.AlertType type) {
-        Alert alert = new Alert(type);
-        alert.setTitle("AVISO!");
-        alert.setHeaderText(null);
-        alert.setContentText(message);
-
-        DialogPane dialogPane = alert.getDialogPane();
-        dialogPane.setStyle("-fx-background-color:  #0041a6; -fx-border-color: #2980b9; -fx-border-width: 2;");
-        dialogPane.lookup(".content").setStyle("-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 14pt; -fx-font-family: Arial");
-
-        Button okButton = (Button) dialogPane.lookupButton(ButtonType.OK);
-        okButton.setStyle("-fx-background-color: white; -fx-text-fill: #0041a6; -fx-font-weight: bold; -fx-font-family: Arial");
-        dialogPane.setMinHeight(Region.USE_PREF_SIZE);
-        dialogPane.setMinWidth(400);
-        dialogPane.setPrefHeight(150);
-        dialogPane.setPrefWidth(500);
-
-        alert.showAndWait();
+    /**
+     * Fecha a janela atual
+     */
+    private void fecharJanelaAtual() {
+        Stage janelaAtual = (Stage) btnAnterior.getScene().getWindow();
+        janelaAtual.close();
     }
 
+    /**
+     * Fecha a janela atual
+     */
+    @FXML
     public void closeWindow(ActionEvent actionEvent) {
         Stage stage = (Stage) ((Node) actionEvent.getSource()).getScene().getWindow();
         stage.close();
     }
 
+    /**
+     * Minimiza a janela atual
+     */
+    @FXML
     public void minimizeWindow(ActionEvent actionEvent) {
         Stage stage = (Stage) ((Node) actionEvent.getSource()).getScene().getWindow();
         stage.setIconified(true);
     }
-
 }

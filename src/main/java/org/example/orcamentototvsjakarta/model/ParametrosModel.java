@@ -1,6 +1,8 @@
 package org.example.orcamentototvsjakarta.model;
 
 import javafx.beans.property.*;
+
+import java.math.BigDecimal;
 import java.util.function.Function;
 
 public class ParametrosModel {
@@ -13,7 +15,7 @@ public class ParametrosModel {
     private final StringProperty rca;
     private final StringProperty supervisor;
     private final IntegerProperty qtdeMaxItens;
-    private final DoubleProperty valorMaxOrcamento;
+    private BigDecimal valorMaxOrcamento;
     private String tipoPreco; // "CUSTO" ou "VENDA"
 
 
@@ -29,17 +31,13 @@ public class ParametrosModel {
         this.rca = new SimpleStringProperty(rca);
         this.supervisor = new SimpleStringProperty(supervisor);
         this.qtdeMaxItens = new SimpleIntegerProperty(qtdeMaxItens != null ? qtdeMaxItens : 10);
-        this.valorMaxOrcamento = new SimpleDoubleProperty(valorMaxOrcamento != null ? valorMaxOrcamento : 10000);
+        this.valorMaxOrcamento = new BigDecimal(valorMaxOrcamento != null ? valorMaxOrcamento : 10000);
         validarParametros();
     }
 
-    public Double getValorMaxOrcamento() {
-        return valorMaxOrcamento.get();
-    }
 
-    public DoubleProperty valorMaxOrcamentoProperty() {
-        return valorMaxOrcamento;
-    }
+
+
 
     public String getTipoPreco() {
         return tipoPrecoProperty.get();
@@ -99,4 +97,18 @@ public class ParametrosModel {
     public String getSupervisor() { return supervisor.get(); }
     public Integer getQtdeMaxItens() { return qtdeMaxItens.get(); }
 
+    public void setValorMaxOrcamento(BigDecimal valorMaxOrcamento) {
+        this.valorMaxOrcamento = valorMaxOrcamento;
+    }
+
+    // Sobrecarga para compatibilidade com código existente
+    public void setValorMaxOrcamento(Double valorMaxOrcamento) {
+        this.valorMaxOrcamento = valorMaxOrcamento != null ?
+                BigDecimal.valueOf(valorMaxOrcamento) :
+                BigDecimal.valueOf(10000);
+    }
+
+    public BigDecimal getValorMaxOrcamento() {
+        return valorMaxOrcamento;
+    }
 }

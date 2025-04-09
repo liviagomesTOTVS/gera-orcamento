@@ -1,4 +1,4 @@
-package org.example.orcamentototvsjakarta;
+package org.example.orcamentototvsjakarta.db.entidade;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;

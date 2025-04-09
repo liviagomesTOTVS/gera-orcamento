@@ -1,6 +1,5 @@
 package org.example.orcamentototvsjakarta;
 
-import javafx.application.Application;
 import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -9,22 +8,33 @@ import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.scene.layout.Region;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import org.example.orcamentototvsjakarta.DTO.*;
 import org.example.orcamentototvsjakarta.db.dao.*;
 import org.example.orcamentototvsjakarta.model.ParametrosModel;
+import org.example.orcamentototvsjakarta.util.AlertUtil;
+import org.example.orcamentototvsjakarta.util.JPAUtil;
 
-import java.net.URL;
+import java.io.IOException;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
+import java.util.function.Function;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-public class TelaParametrosController extends Application {
+/**
+ * Controller da tela de parâmetros para geração de orçamentos.
+ * Responsável por coletar os parâmetros iniciais necessários para o processo.
+ */
+public class TelaParametrosController {
+    private static final Logger LOGGER = Logger.getLogger(TelaParametrosController.class.getName());
 
-    @FXML private ComboBox<String>  comboCliente, comboPraca, comboRCA, comboSupervisor, comboRamoAtividade;
+    // Componentes FXML
+    @FXML private ComboBox<String> comboCliente, comboPraca, comboRCA, comboSupervisor, comboRamoAtividade;
     @FXML private TextField txtQtdeMaxItens, txtValorMaxOrcamento;
     @FXML private Button btnAvancar;
     @FXML private TextField tfCliente;
@@ -34,46 +44,59 @@ public class TelaParametrosController extends Application {
     @FXML private ComboBox<CobrancaDTO> comboCobranca;
     @FXML private ComboBox<PlanoPagamentoDTO> comboPlanoPagamento;
 
-
+    // DAOs
     private final PcfilialDAO pcfilialDAO = new PcfilialDAO();
     private final PcclientDAO pcclientDAO = new PcclientDAO();
     private final PcplpagDAO pcplpagDAO = new PcplpagDAO();
     private final PccobDAO pccobDAO = new PccobDAO();
     private final PcusuariDAO pcusuariDAO = new PcusuariDAO();
     private final PcemprDAO pcemprDAO = new PcemprDAO();
+
+    // Constantes e variáveis de estado
     private ClienteDTO clienteSelecionadoManual = null;
+    private static final String OPCAO_PADRAO = "Selecione...";
+    private static final String NAO_INFORMADO = "Não informado";
+    private static final int CLIENTE_PADRAO_ID = 2;
 
-
-    @Override
-    public void start(Stage primaryStage) throws Exception {
-
-    }
-
+    /**
+     * Inicializa o controller após a injeção dos componentes FXML
+     */
     @FXML
     public void initialize() {
-        carregarDados();
-        //comboCliente.setOnAction(event -> carregarDadosRelacionadosCliente());
-        comboRCA.setOnAction(event -> onRCASelecionado());
-        btnAvancar.setOnAction(event -> onAvancar());
-
-        // Listener de foco do campo tfCliente
-        tfCliente.focusedProperty().addListener((obs, antigo, novo) -> {
-            if (!novo) { // perdeu o foco
-                buscarClientePorCodigoDigitado();
-            }
-        });
-
         try {
-            ClienteDTO clienteDefault = pcclientDAO.buscarDTOporCodigo(2);
-            if (clienteDefault != null) {
-                clienteSelecionadoManual = clienteDefault;
-                tfCliente.setText(clienteDefault.toString());
-                carregarDadosRelacionadosCliente(clienteDefault.getCodcli());
-            }
+            configurarListeners();
+            carregarDadosIniciais();
+            carregarClientePadrao();
         } catch (Exception e) {
-            showAlert("Erro ao carregar cliente padrão: " + e.getMessage(), Alert.AlertType.ERROR);
+            LOGGER.log(Level.SEVERE, "Erro ao inicializar a tela de parâmetros", e);
+            AlertUtil.showAlert("Erro ao inicializar a tela: " + e.getMessage(), Alert.AlertType.ERROR);
         }
+    }
 
+    /**
+     * Configura os listeners de eventos dos componentes
+     */
+    private void configurarListeners() {
+        // Listeners para eventos de UI
+        configurarListenersComboBoxes();
+        configurarListenersCheckboxes();
+        configurarListenersCamposTexto();
+        configurarBotoes();
+    }
+
+    /**
+     * Configura os listeners dos botões
+     */
+    private void configurarBotoes() {
+        btnAvancar.setOnAction(this::onAvancar);
+    }
+
+    private void configurarListenersComboBoxes() {
+        comboRCA.setOnAction(event -> onRCASelecionado());
+    }
+
+    private void configurarListenersCheckboxes() {
+        // Configuração de checkbox mutuamente exclusivos
         cbPrecoCusto.setOnAction(event -> {
             if (cbPrecoCusto.isSelected()) {
                 cbPrecoVenda.setSelected(false);
@@ -85,39 +108,234 @@ public class TelaParametrosController extends Application {
                 cbPrecoCusto.setSelected(false);
             }
         });
-
     }
 
-    private void carregarDados() {
-        //carregarDadosClientes();
-        carregarDadosFiliais();
-
-        carregarOpcoesRCA();
-        carregarOpcoesFuncionarios();
-
-        comboPraca.setDisable(true);
-        comboRamoAtividade.setDisable(true);
-        comboPlanoPagamento.setDisable(true);
-        comboCobranca.setDisable(true);
-        comboSupervisor.setDisable(true);
+    private void configurarListenersCamposTexto() {
+        // Listener para campo de cliente quando perde o foco
+        tfCliente.focusedProperty().addListener((obs, antigo, novo) -> {
+            if (!novo) { // perdeu o foco
+                buscarClientePorCodigoDigitado();
+            }
+        });
     }
 
-    private void carregarDadosClientes() {
+    /**
+     * Carrega os dados iniciais necessários para a tela
+     */
+    private void carregarDadosIniciais() {
+        // Executa em paralelo onde possível
+        Thread filialThread = new Thread(this::carregarDadosFiliais);
+        Thread rcaThread = new Thread(this::carregarOpcoesRCA);
+        Thread funcionariosThread = new Thread(this::carregarOpcoesFuncionarios);
+
+        filialThread.start();
+        rcaThread.start();
+        funcionariosThread.start();
+
         try {
-            List<String> clientes = pcclientDAO.buscarTodosDTO().stream()
-                    .sorted(Comparator.comparing(ClienteDTO::getCodcli))
-                    .map(ClienteDTO::toString)
-                    .collect(Collectors.toList());
+            filialThread.join();
+            rcaThread.join();
+            funcionariosThread.join();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            LOGGER.log(Level.WARNING, "Carregamento de dados interrompido", e);
+        }
 
-            carregarComboBox(comboCliente, clientes);
+        // Inicializa estado dos campos relacionados ao cliente
+        desabilitarCamposRelacionadosAoCliente(true);
+    }
+
+    /**
+     * Carrega o cliente padrão se disponível
+     */
+    private void carregarClientePadrao() {
+        try {
+            Optional<ClienteDTO> clienteDefault = Optional.ofNullable(
+                    pcclientDAO.buscarDTOporCodigo(CLIENTE_PADRAO_ID));
+
+            clienteDefault.ifPresent(cliente -> {
+                LOGGER.info("Cliente padrão carregado: " + cliente.getCodcli() + " - " + cliente.getNome());
+                clienteSelecionadoManual = cliente;
+                tfCliente.setText(cliente.toString());
+                carregarDadosRelacionadosCliente(cliente.getCodcli());
+            });
         } catch (Exception e) {
-            showAlert("Erro ao carregar clientes: " + e.getMessage(), Alert.AlertType.ERROR);
+            LOGGER.log(Level.WARNING, "Erro ao carregar cliente padrão", e);
+            AlertUtil.showAlert("Erro ao carregar cliente padrão: " + e.getMessage(),
+                    Alert.AlertType.ERROR);
         }
     }
 
+    /**
+     * Habilita ou desabilita campos relacionados ao cliente
+     */
+    private void desabilitarCamposRelacionadosAoCliente(boolean disable) {
+        comboPraca.setDisable(disable);
+        comboRamoAtividade.setDisable(disable);
+        comboPlanoPagamento.setDisable(disable);
+        comboCobranca.setDisable(disable);
+    }
 
-    // Método para abrir a janela modal de pesquisa de cliente
-    private void onPesquisarCliente() {
+    /**
+     * Método genérico para carregar ComboBoxes com valores e opção padrão
+     */
+    private <T> void carregarComboBox(ComboBox<T> comboBox, List<T> valores, T valorPadrao) {
+        comboBox.getItems().clear();
+        comboBox.setItems(FXCollections.observableArrayList(valores));
+
+        if (valorPadrao != null) {
+            comboBox.getItems().add(0, valorPadrao);
+        }
+
+        comboBox.getSelectionModel().selectFirst();
+    }
+
+    /**
+     * Carrega os dados das filiais no combobox correspondente
+     */
+    private void carregarDadosFiliais() {
+        try {
+            List<FilialDTO> filiais = pcfilialDAO.buscarTodas().stream()
+                    .sorted(Comparator.comparing(pcfilial -> pcfilial.getId().getCodigo()))
+                    .map(pcfilial -> new FilialDTO(pcfilial.getId().getCodigo(), pcfilial.getRazaosocial()))
+                    .collect(Collectors.toList());
+
+            javafx.application.Platform.runLater(() -> {
+                carregarComboBox(comboFilial, filiais, new FilialDTO(null, OPCAO_PADRAO));
+            });
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Erro ao carregar filiais", e);
+            javafx.application.Platform.runLater(() -> {
+                AlertUtil.showAlert("Erro ao carregar filiais: " + e.getMessage(), Alert.AlertType.ERROR);
+            });
+        }
+    }
+
+    /**
+     * Carrega as opções de RCA no combobox correspondente
+     */
+    private void carregarOpcoesRCA() {
+        try {
+            List<String> rcas = pcusuariDAO.buscarTodos().stream()
+                    .sorted(Comparator.comparing(pcusuari -> pcusuari.getId()))
+                    .map(pcusuari -> pcusuari.getId() + " - " + pcusuari.getNome())
+                    .collect(Collectors.toList());
+
+            javafx.application.Platform.runLater(() -> {
+                carregarComboBox(comboRCA, rcas, OPCAO_PADRAO);
+            });
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Erro ao carregar RCAs", e);
+            javafx.application.Platform.runLater(() -> {
+                AlertUtil.showAlert("Erro ao carregar RCA: " + e.getMessage(), Alert.AlertType.ERROR);
+            });
+        }
+    }
+
+    /**
+     * Carrega as opções de funcionários no combobox correspondente
+     */
+    private void carregarOpcoesFuncionarios() {
+        try {
+            List<FuncionarioDTO> funcionarios = pcemprDAO.listarTodos().stream()
+                    .sorted(Comparator.comparing(pcempr -> pcempr.getId()))
+                    .map(pcempr -> new FuncionarioDTO(pcempr.getId(), pcempr.getNome()))
+                    .collect(Collectors.toList());
+
+            javafx.application.Platform.runLater(() -> {
+                carregarComboBox(comboFuncionario, funcionarios, new FuncionarioDTO(null, OPCAO_PADRAO));
+            });
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Erro ao carregar funcionários", e);
+            javafx.application.Platform.runLater(() -> {
+                AlertUtil.showAlert("Erro ao carregar funcionários: " + e.getMessage(), Alert.AlertType.ERROR);
+            });
+        }
+    }
+
+    /**
+     * Carrega as opções de cobrança no combobox correspondente
+     */
+    private void carregarOpcoesCobranca(String codCobrancaCliente) {
+        try {
+            List<CobrancaDTO> cobrancas = pccobDAO.buscarTodos().stream()
+                    .sorted(Comparator.comparing(pccob -> pccob.getCodcob()))
+                    .map(pccob -> new CobrancaDTO(pccob.getCodcob(), pccob.getCobranca()))
+                    .collect(Collectors.toList());
+
+            carregarComboBox(comboCobranca, cobrancas, new CobrancaDTO(null, OPCAO_PADRAO));
+
+            if (codCobrancaCliente != null) {
+                selecionarItemPorCodigo(comboCobranca, codCobrancaCliente, CobrancaDTO::getCodigo);
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Erro ao carregar cobranças", e);
+            AlertUtil.showAlert("Erro ao carregar cobranças: " + e.getMessage(), Alert.AlertType.ERROR);
+        }
+    }
+
+    /**
+     * Carrega as opções de plano de pagamento no combobox correspondente
+     */
+    private void carregarOpcoesPlanoPagamento(Integer codPlanoPagamentoCliente) {
+        try {
+            List<PlanoPagamentoDTO> planos = pcplpagDAO.buscarTodos().stream()
+                    .sorted(Comparator.comparing(pcplpag -> pcplpag.getId()))
+                    .map(pcplpag -> new PlanoPagamentoDTO(Integer.valueOf(pcplpag.getId()), pcplpag.getDescricao()))
+                    .collect(Collectors.toList());
+
+            carregarComboBox(comboPlanoPagamento, planos, new PlanoPagamentoDTO(null, OPCAO_PADRAO));
+
+            if (codPlanoPagamentoCliente != null) {
+                selecionarItemPorCodigo(comboPlanoPagamento, codPlanoPagamentoCliente, PlanoPagamentoDTO::getCodigo);
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Erro ao carregar planos de pagamento", e);
+            AlertUtil.showAlert("Erro ao carregar planos de pagamento: " + e.getMessage(), Alert.AlertType.ERROR);
+        }
+    }
+
+    /**
+     * Método genérico para selecionar um item em um combobox por seu código
+     */
+    private <T, U> void selecionarItemPorCodigo(ComboBox<T> comboBox, U codigo, Function<T, U> extrator) {
+        for (T item : comboBox.getItems()) {
+            if (codigo.equals(extrator.apply(item))) {
+                comboBox.getSelectionModel().select(item);
+                break;
+            }
+        }
+    }
+
+    /**
+     * Handler para evento de seleção de RCA
+     */
+    private void onRCASelecionado() {
+        String rcaSelecionado = comboRCA.getSelectionModel().getSelectedItem();
+
+        if (rcaSelecionado != null && !rcaSelecionado.equals(OPCAO_PADRAO)) {
+            try {
+                // Obtém o código do RCA (antes do " - ")
+                Short codRCA = Short.parseShort(rcaSelecionado.split(" - ")[0]);
+
+                // Buscar o código do supervisor associado ao RCA
+                Short codSupervisor = pcusuariDAO.buscarSupervisorPorRCA(codRCA);
+
+                comboSupervisor.setValue(codSupervisor != null ? codSupervisor.toString() : NAO_INFORMADO);
+            } catch (NumberFormatException e) {
+                LOGGER.log(Level.WARNING, "Formato inválido para código do RCA", e);
+                AlertUtil.showAlert("Formato inválido para código do RCA", Alert.AlertType.ERROR);
+            }
+        } else {
+            comboSupervisor.setValue(null);
+        }
+    }
+
+    /**
+     * Método para abrir o modal de pesquisa de cliente
+     */
+    @FXML
+    public void abrirModalPesquisa(ActionEvent actionEvent) {
         try {
             FXMLLoader loader = new FXMLLoader(this.getClass().getResource("/fxml/modalCliente.fxml"));
             Parent root = loader.load();
@@ -130,19 +348,24 @@ public class TelaParametrosController extends Application {
             stage.initModality(Modality.APPLICATION_MODAL);
             stage.showAndWait();
 
-            ClienteDTO clienteSelecionado = controller.getClienteSelecionado();
-            if (clienteSelecionado != null) {
-                clienteSelecionadoManual = clienteSelecionado;
-                tfCliente.setText(clienteSelecionado.toString());
-                carregarDadosRelacionadosCliente(clienteSelecionadoManual.getCodcli());
-            }
+            Optional.ofNullable(controller.getClienteSelecionado()).ifPresent(cliente -> {
+                clienteSelecionadoManual = cliente;
+                tfCliente.setText(cliente.toString());
+                carregarDadosRelacionadosCliente(cliente.getCodcli());
+            });
 
+        } catch (IOException e) {
+            LOGGER.log(Level.SEVERE, "Erro ao abrir modal de cliente", e);
+            AlertUtil.showAlert("Erro ao abrir modal de cliente: " + e.getMessage(), Alert.AlertType.ERROR);
         } catch (Exception e) {
-            showAlert("Erro ao abrir modal de cliente: " + e.getMessage(), Alert.AlertType.ERROR);
+            LOGGER.log(Level.SEVERE, "Erro inesperado", e);
+            AlertUtil.showAlert("Erro inesperado: " + e.getMessage(), Alert.AlertType.ERROR);
         }
     }
 
-
+    /**
+     * Busca cliente pelo código digitado no campo de texto
+     */
     private void buscarClientePorCodigoDigitado() {
         String texto = tfCliente.getText().trim();
 
@@ -152,269 +375,181 @@ public class TelaParametrosController extends Application {
         }
 
         try {
-            Integer codcli = Integer.parseInt(texto.replaceAll("[^0-9]", ""));
-            ClienteDTO cliente = pcclientDAO.buscarDTOporCodigo(codcli);
+            // Extrai apenas os números do texto
+            String numeroTexto = texto.replaceAll("[^0-9]", "");
+            if (numeroTexto.isEmpty()) {
+                throw new NumberFormatException("Sem números válidos no texto");
+            }
 
+            Integer codcli = Integer.parseInt(numeroTexto);
+            Optional<ClienteDTO> clienteOpt = Optional.ofNullable(pcclientDAO.buscarDTOporCodigo(codcli));
 
-            if (cliente != null) {
+            if (clienteOpt.isPresent()) {
+                ClienteDTO cliente = clienteOpt.get();
                 clienteSelecionadoManual = cliente;
                 tfCliente.setText(cliente.toString());
                 carregarDadosRelacionadosCliente(cliente.getCodcli());
             } else {
-                showAlert("Cliente não encontrado para o código informado!", Alert.AlertType.WARNING);
-                tfCliente.clear();
-                clienteSelecionadoManual = null;
+                AlertUtil.showAlert("Cliente não encontrado para o código informado!", Alert.AlertType.WARNING);
+                limparDadosCliente();
             }
 
         } catch (NumberFormatException e) {
-            showAlert("Informe apenas o código numérico do cliente.", Alert.AlertType.WARNING);
-            tfCliente.clear();
-            clienteSelecionadoManual = null;
+            LOGGER.log(Level.INFO, "Formato inválido para código do cliente: " + texto, e);
+            AlertUtil.showAlert("Informe apenas o código numérico do cliente.", Alert.AlertType.WARNING);
+            limparDadosCliente();
         } catch (Exception e) {
-            showAlert("Erro ao buscar cliente: " + e.getMessage(), Alert.AlertType.ERROR);
-            tfCliente.clear();
-            clienteSelecionadoManual = null;
+            LOGGER.log(Level.WARNING, "Erro ao buscar cliente: " + texto, e);
+            AlertUtil.showAlert("Erro ao buscar cliente: " + e.getMessage(), Alert.AlertType.ERROR);
+            limparDadosCliente();
         }
     }
 
-    public void abrirModalPesquisa(ActionEvent actionEvent) {
-        onPesquisarCliente();
+    /**
+     * Limpa os dados do cliente selecionado
+     */
+    private void limparDadosCliente() {
+        tfCliente.clear();
+        clienteSelecionadoManual = null;
+        limparDadosRelacionadosCliente();
     }
 
-    private void carregarComboBoxFilial(ComboBox<FilialDTO> comboBox, List<FilialDTO> valores) {
-        comboBox.setItems(FXCollections.observableArrayList(valores));
-        comboBox.getItems().add(0, new FilialDTO(null, "Selecione..."));
-        comboBox.getSelectionModel().selectFirst();
-    }
+    /**
+     * Carrega os dados relacionados ao cliente selecionado
+     */
+    private void carregarDadosRelacionadosCliente(Integer codcli) {
+        if (codcli == null) {
+            limparDadosRelacionadosCliente();
+            return;
+        }
 
+        desabilitarCamposRelacionadosAoCliente(false);
 
-    private void carregarDadosFiliais() {
         try {
-            List<FilialDTO> filiais = pcfilialDAO.buscarTodas().stream()
-                    .sorted(Comparator.comparing(pcfilial -> pcfilial.getId().getCodigo()))
-                    .map(pcfilial -> new FilialDTO(pcfilial.getId().getCodigo(), pcfilial.getRazaosocial()))
-                    .collect(Collectors.toList());
+            // Busca informações do cliente
+            Integer codPraca = pcclientDAO.buscarPracaPorCliente(codcli);
+            Integer codRamo = pcclientDAO.buscarRamoAtividadePorCliente(codcli);
+            Short codPlano = pcclientDAO.buscarPlanoPagamentoPorCliente(codcli);
+            String codCobranca = pcclientDAO.buscarCobrancaPorCliente(codcli);
 
-            carregarComboBoxFilial(comboFilial, filiais);
+            // Preenche os campos com os dados obtidos
+            comboPraca.setValue(codPraca != null ? codPraca.toString() : NAO_INFORMADO);
+            comboRamoAtividade.setValue(codRamo != null ? codRamo.toString() : NAO_INFORMADO);
+
+            // Carrega opções relacionadas
+            carregarOpcoesCobranca(codCobranca);
+            carregarOpcoesPlanoPagamento(codPlano != null ? codPlano.intValue() : null);
+
+            // Campos de visualização apenas
+            comboPraca.setDisable(true);
+            comboRamoAtividade.setDisable(true);
+
         } catch (Exception e) {
-            showAlert("Erro ao carregar filiais: " + e.getMessage(), Alert.AlertType.ERROR);
+            LOGGER.log(Level.WARNING, "Erro ao carregar dados do cliente: " + codcli, e);
+            AlertUtil.showAlert("Erro ao carregar dados do cliente: " + e.getMessage(), Alert.AlertType.ERROR);
+            limparDadosRelacionadosCliente();
         }
     }
 
-
-private void carregarDadosRelacionadosCliente(Integer codcli) {
-    if (codcli == null) {
+    /**
+     * Limpa os dados relacionados ao cliente
+     */
+    private void limparDadosRelacionadosCliente() {
         comboPraca.setValue(null);
         comboRamoAtividade.setValue(null);
         comboPlanoPagamento.getSelectionModel().clearSelection();
         comboCobranca.getSelectionModel().clearSelection();
-        return;
+        desabilitarCamposRelacionadosAoCliente(true);
     }
 
-    comboPraca.setDisable(false);
-    comboRamoAtividade.setDisable(false);
-    comboPlanoPagamento.setDisable(false);
-    comboCobranca.setDisable(false);
-
-    try {
-        Integer codPraca = pcclientDAO.buscarPracaPorCliente(codcli);
-        Integer codRamo = pcclientDAO.buscarRamoAtividadePorCliente(codcli);
-        Short codPlano = pcclientDAO.buscarPlanoPagamentoPorCliente(codcli);
-        String codCobranca = pcclientDAO.buscarCobrancaPorCliente(codcli);
-
-        comboPraca.setValue(codPraca != null ? codPraca.toString() : "Não informado");
-        comboRamoAtividade.setValue(codRamo != null ? codRamo.toString() : "Não informado");
-
-        carregarOpcoesCobranca(codCobranca);
-        carregarOpcoesPlanoPagamento(codPlano != null ? codPlano.intValue() : null);
-
-        comboPraca.setDisable(true);
-        comboRamoAtividade.setDisable(true);
-
-    } catch (Exception e) {
-        showAlert("Erro ao carregar dados do cliente: " + e.getMessage(), Alert.AlertType.ERROR);
-    }
-}
-
-    private void carregarComboBoxFuncionario(ComboBox<FuncionarioDTO> comboBox, List<FuncionarioDTO> valores) {
-        comboBox.setItems(FXCollections.observableArrayList(valores));
-        comboBox.getItems().add(0, new FuncionarioDTO(null, "Selecione..."));
-        comboBox.getSelectionModel().selectFirst();
-    }
-
-
-    private void carregarOpcoesFuncionarios() {
+    /**
+     * Handler para o botão Avançar
+     */
+    @FXML
+    public void onAvancar(ActionEvent event) {
         try {
-            List<FuncionarioDTO> funcionarios = pcemprDAO.listarTodos().stream()
-                    .sorted(Comparator.comparing(pcempr -> pcempr.getId()))
-                    .map(pcempr -> new FuncionarioDTO(pcempr.getId(), pcempr.getNome()))
-                    .collect(Collectors.toList());
-
-            carregarComboBoxFuncionario(comboFuncionario, funcionarios);
-        } catch (Exception e) {
-            showAlert("Erro ao carregar funcionários: " + e.getMessage(), Alert.AlertType.ERROR);
-        }
-    }
-
-
-    private void carregarComboBoxCobranca(ComboBox<CobrancaDTO> comboBox, List<CobrancaDTO> valores) {
-        comboBox.setItems(FXCollections.observableArrayList(valores));
-        comboBox.getItems().add(0, new CobrancaDTO(null, "Selecione..."));
-        comboBox.getSelectionModel().selectFirst();
-    }
-
-
-    private void carregarOpcoesCobranca(String codCobrancaCliente) {
-        try {
-            List<CobrancaDTO> cobrancas = pccobDAO.buscarTodos().stream()
-                    .sorted(Comparator.comparing(pccob -> pccob.getCodcob()))
-                    .map(pccob -> new CobrancaDTO(pccob.getCodcob(), pccob.getCobranca()))
-                    .collect(Collectors.toList());
-
-            carregarComboBoxCobranca(comboCobranca, cobrancas);
-
-            if (codCobrancaCliente != null) {
-                for (CobrancaDTO dto : cobrancas) {
-                    if (dto.getCodigo().equals(codCobrancaCliente)) {
-                        comboCobranca.getSelectionModel().select(dto);
-                        break;
-                    }
-                }
-            }
-        } catch (Exception e) {
-            showAlert("Erro ao carregar cobranças: " + e.getMessage(), Alert.AlertType.ERROR);
-        }
-    }
-
-    private void carregarComboBoxPlanoPagamento(ComboBox<PlanoPagamentoDTO> comboBox, List<PlanoPagamentoDTO> valores) {
-        comboBox.setItems(FXCollections.observableArrayList(valores));
-        comboBox.getItems().add(0, new PlanoPagamentoDTO(null, "Selecione..."));
-        comboBox.getSelectionModel().selectFirst();
-    }
-
-
-    private void carregarOpcoesPlanoPagamento(Integer codPlanoPagamentoCliente) {
-        try {
-            List<PlanoPagamentoDTO> planos = pcplpagDAO.buscarTodos().stream()
-                    .sorted(Comparator.comparing(pcplpag -> pcplpag.getId()))
-                    .map(pcplpag -> new PlanoPagamentoDTO(Integer.valueOf(pcplpag.getId()), pcplpag.getDescricao()))
-                    .collect(Collectors.toList());
-
-            carregarComboBoxPlanoPagamento(comboPlanoPagamento, planos);
-
-            if (codPlanoPagamentoCliente != null) {
-                for (PlanoPagamentoDTO dto : planos) {
-                    if (dto.getCodigo().equals(codPlanoPagamentoCliente)) {
-                        comboPlanoPagamento.getSelectionModel().select(dto);
-                        break;
-                    }
-                }
-            }
-        } catch (Exception e) {
-            showAlert("Erro ao carregar planos de pagamento: " + e.getMessage(), Alert.AlertType.ERROR);
-        }
-    }
-
-
-    private void carregarOpcoesRCA() {
-        try {
-            List<String> rcas = pcusuariDAO.buscarTodos().stream()
-                    .sorted(Comparator.comparing(pcusuari -> pcusuari.getId()))
-                    .map(pcusuari -> pcusuari.getId() + " - " + pcusuari.getNome())
-                    .collect(Collectors.toList());
-
-            carregarComboBox(comboRCA, rcas);
-        } catch (Exception e) {
-            showAlert("Erro ao carregar RCA: " + e.getMessage(), Alert.AlertType.ERROR);
-        }
-    }
-
-
-    private void carregarComboBox(ComboBox<String> comboBox, List<String> valores) {
-        comboBox.setItems(FXCollections.observableArrayList(valores));
-        comboBox.getItems().add(0, "Selecione...");
-        comboBox.getSelectionModel().selectFirst();
-    }
-
-    private void carregarComboBox2(ComboBox<String> comboBox, String valor) {
-        comboBox.getItems().clear(); // Limpa itens anteriores
-        comboBox.getItems().add(valor); // Adiciona o único valor
-        comboBox.getSelectionModel().selectFirst(); // Seleciona automaticamente
-    }
-
-
-
-    private void onRCASelecionado() {
-        String rcaSelecionado = comboRCA.getSelectionModel().getSelectedItem();
-
-        if (rcaSelecionado != null && !rcaSelecionado.equals("Selecione...")) {
-            // Obtém o código do RCA (antes do " - ")
-            Short codRCA = Short.parseShort(rcaSelecionado.split(" - ")[0]);
-
-            // Buscar o código do supervisor associado ao RCA
-            Short codSupervisor = pcusuariDAO.buscarSupervisorPorRCA(codRCA);
-
-            if (codSupervisor != null) {
-                comboSupervisor.setValue(codSupervisor.toString());
-            } else {
-                comboSupervisor.setValue("Não informado");
+            if (!validarCampos()) {
+                return;
             }
 
-            // Torna o campo Supervisor não editável
-            //comboSupervisor.setDisable(true);
-        } else {
-            comboSupervisor.setValue(null);
-            comboSupervisor.setDisable(false);
+            ParametrosModel parametros = criarParametrosModel();
+            abrirTelaDepartamentos(parametros);
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Erro ao avançar para próxima tela", e);
+            AlertUtil.showAlert("Erro ao avançar: " + e.getMessage(), Alert.AlertType.ERROR);
         }
     }
 
-    private void onAvancar() {
+    /**
+     * Valida os campos obrigatórios antes de avançar
+     */
+    private boolean validarCampos() {
         // Validação: Cliente
         if (clienteSelecionadoManual == null) {
-            showAlert("Selecione um cliente antes de continuar!", Alert.AlertType.WARNING);
-            return;
+            AlertUtil.showAlert("Selecione um cliente antes de continuar!", Alert.AlertType.WARNING);
+            tfCliente.requestFocus();
+            return false;
         }
 
-        // Extração dos parâmetros
+        // Validação: Filial
+        FilialDTO filialDTO = comboFilial.getSelectionModel().getSelectedItem();
+        if (filialDTO == null || filialDTO.getCodigo() == null) {
+            AlertUtil.showAlert("Selecione uma filial antes de continuar!", Alert.AlertType.WARNING);
+            comboFilial.requestFocus();
+            return false;
+        }
+
+        // Validação: RCA
+        if (getSelectedValue(comboRCA) == null) {
+            AlertUtil.showAlert("Selecione um RCA antes de continuar!", Alert.AlertType.WARNING);
+            comboRCA.requestFocus();
+            return false;
+        }
+
+        // Validação: Quantidade máxima de itens
+        Integer qtdeMaxItens = getIntegerValue(txtQtdeMaxItens, "Qtde Máx. Itens no Orçamento");
+        if (qtdeMaxItens == null) {
+            AlertUtil.showAlert("Informe a quantidade máxima de itens no orçamento!", Alert.AlertType.WARNING);
+            txtQtdeMaxItens.requestFocus();
+            return false;
+        }
+
+        // Validação: Tipo de preço
+        if (!cbPrecoCusto.isSelected() && !cbPrecoVenda.isSelected()) {
+            AlertUtil.showAlert("Selecione o tipo de preço (Custo ou Venda)!", Alert.AlertType.WARNING);
+            cbPrecoCusto.requestFocus();
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Cria o modelo de parâmetros com os dados preenchidos
+     */
+    private ParametrosModel criarParametrosModel() {
+        // Extração dos parâmetros dos componentes
         String clienteSelecionado = clienteSelecionadoManual.toString();
         String rcaSelecionado = getSelectedValue(comboRCA);
         String supervisorSelecionado = getSelectedValue(comboSupervisor);
         String pracaSelecionada = getSelectedValue(comboPraca);
         String ramoAtividadeSelecionado = getSelectedValue(comboRamoAtividade);
         Double valorMaxOrcamento = getDoubleValue(txtValorMaxOrcamento, "Valor Máx. do Orçamento");
+        Integer qtdeMaxItens = getIntegerValue(txtQtdeMaxItens, "Qtde Máx. Itens no Orçamento");
 
-        // Validação: Filial
         FilialDTO filialDTO = comboFilial.getSelectionModel().getSelectedItem();
-        if (filialDTO == null || filialDTO.getCodigo() == null) {
-            showAlert("Selecione uma filial antes de continuar!", Alert.AlertType.WARNING);
-            return;
-        }
         String filialSelecionada = filialDTO.toString();
 
-        // Validação: RCA
-        if (rcaSelecionado == null) {
-            showAlert("Selecione um RCA antes de continuar!", Alert.AlertType.WARNING);
-            return;
-        }
+        // Extração de valores dos combos de objetos
+        String planoPagamentoSelecionado = getValorComboDTO(
+                comboPlanoPagamento,
+                dto -> dto.getCodigo() != null ? dto.getCodigo().toString() : null
+        );
 
-        // Validação: Quantidade máxima de itens
-        Integer qtdeMaxItens = getIntegerValue(txtQtdeMaxItens, "Qtde Máx. Itens no Orçamento");
-        if (qtdeMaxItens == null) {
-            showAlert("Informe a quantidade máxima de itens no orçamento!", Alert.AlertType.WARNING);
-            return;
-        }
-
-        // Plano de pagamento
-        PlanoPagamentoDTO planoDTO = comboPlanoPagamento.getSelectionModel().getSelectedItem();
-        String planoPagamentoSelecionado = (planoDTO != null && planoDTO.getCodigo() != null)
-                ? planoDTO.getCodigo().toString()
-                : null;
-
-        // Cobrança
-        CobrancaDTO cobrancaDTO = comboCobranca.getSelectionModel().getSelectedItem();
-        String cobrancaSelecionada = (cobrancaDTO != null && cobrancaDTO.getCodigo() != null)
-                ? cobrancaDTO.getCodigo()
-                : null;
+        String cobrancaSelecionada = getValorComboDTO(
+                comboCobranca,
+                dto -> dto.getCodigo()
+        );
 
         // Monta o modelo de parâmetros
         ParametrosModel parametros = new ParametrosModel(
@@ -427,100 +562,123 @@ private void carregarDadosRelacionadosCliente(Integer codcli) {
                 rcaSelecionado,
                 supervisorSelecionado,
                 qtdeMaxItens,
-                valorMaxOrcamento // Se null, o model assume o valor padrão (10.000)
+                valorMaxOrcamento // Se null, o model assume o valor padrão
         );
 
         // Define o tipo de preço (C = Custo, V = Venda)
-        if (cbPrecoCusto.isSelected()) {
-            parametros.setTipoPreco("C");
-        } else if (cbPrecoVenda.isSelected()) {
-            parametros.setTipoPreco("V");
-        } else {
-            showAlert("Selecione o tipo de preço (Custo ou Venda)!", Alert.AlertType.WARNING);
-            return;
-        }
+        parametros.setTipoPreco(cbPrecoCusto.isSelected() ? "C" : "V");
 
-        // Abre a próxima tela
+        return parametros;
+    }
+
+    /**
+     * Extrai um valor de um combobox de DTOs usando uma função extratora
+     */
+    private <T, R> R getValorComboDTO(ComboBox<T> comboBox, Function<T, R> extrator) {
+        T selectedItem = comboBox.getSelectionModel().getSelectedItem();
+        return (selectedItem != null) ? extrator.apply(selectedItem) : null;
+    }
+
+    /**
+     * Abre a tela de departamentos com os parâmetros selecionados
+     */
+    private void abrirTelaDepartamentos(ParametrosModel parametros) {
         try {
+            // Carrega o arquivo FXML
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/telaDepartamentos16.fxml"));
             Parent root = loader.load();
 
+            // Obtém o controller e configura os parâmetros
             TelaDepartamentoController controller = loader.getController();
             if (controller == null) {
-                showAlert("Erro ao carregar controlador da tela de departamentos!", Alert.AlertType.ERROR);
+                AlertUtil.showAlert("Erro ao carregar controlador da tela de departamentos!",
+                        Alert.AlertType.ERROR);
                 return;
             }
 
             controller.setParametrosModel(parametros);
 
+            // Configura e mostra a nova tela
             Stage stage = new Stage();
             stage.setTitle("Departamentos");
             stage.setScene(new Scene(root));
             stage.initStyle(StageStyle.UNDECORATED);
             stage.show();
 
+            // Fecha a tela atual
             ((Stage) btnAvancar.getScene().getWindow()).close();
 
-        } catch (Exception e) {
-            showAlert("Erro ao carregar próxima tela: " + e.getMessage(), Alert.AlertType.ERROR);
+        } catch (IOException e) {
+            LOGGER.log(Level.SEVERE, "Erro ao carregar próxima tela", e);
+            AlertUtil.showAlert("Erro ao carregar próxima tela: " + e.getMessage(),
+                    Alert.AlertType.ERROR);
         }
     }
 
-
+    /**
+     * Converte o texto de um campo para Integer
+     */
     private Integer getIntegerValue(TextField field, String fieldName) {
         try {
-            return field.getText().trim().isEmpty() ? null : Integer.parseInt(field.getText().trim());
+            String text = field.getText().trim();
+            return text.isEmpty() ? null : Integer.parseInt(text);
         } catch (NumberFormatException ex) {
-            showAlert("Insira um valor numérico válido para '" + fieldName + "'!", Alert.AlertType.ERROR);
+            LOGGER.log(Level.INFO, "Formato inválido para " + fieldName + ": " + field.getText(), ex);
+            AlertUtil.showAlert("Insira um valor numérico válido para '" + fieldName + "'!",
+                    Alert.AlertType.ERROR);
             return null;
         }
     }
 
+    /**
+     * Converte o texto de um campo para Double
+     */
     private Double getDoubleValue(TextField field, String fieldName) {
         try {
-            return field.getText().trim().isEmpty() ? null : Double.parseDouble(field.getText().trim());
+            String text = field.getText().trim();
+            return text.isEmpty() ? null : Double.parseDouble(text.replace(',', '.'));
         } catch (NumberFormatException ex) {
-            showAlert("Insira um valor numérico válido para '" + fieldName + "'!", Alert.AlertType.ERROR);
+            LOGGER.log(Level.INFO, "Formato inválido para " + fieldName + ": " + field.getText(), ex);
+            AlertUtil.showAlert("Insira um valor numérico válido para '" + fieldName + "'!",
+                    Alert.AlertType.ERROR);
             return null;
         }
     }
 
+    /**
+     * Obtém o valor selecionado de um ComboBox desconsiderando a opção padrão
+     */
     private String getSelectedValue(ComboBox<String> comboBox) {
         String value = comboBox.getSelectionModel().getSelectedItem();
-        return (value != null && !value.equals("Selecione...")) ? value : null;
+        return (value != null && !value.equals(OPCAO_PADRAO)) ? value : null;
     }
 
-    private void showAlert(String message, Alert.AlertType type) {
-        Alert alert = new Alert(type);
-        alert.setTitle("AVISO!");
-        alert.setHeaderText(null);
-        alert.setContentText(message);
-        DialogPane dialogPane = alert.getDialogPane();
-        dialogPane.setStyle("-fx-background-color:  #0041a6; -fx-border-color: #2980b9; -fx-border-width: 2;");
-        dialogPane.lookup(".content").setStyle("-fx-background-color:  #0041a6; -fx-text-fill: white;-fx-font-weight: bold; -fx-font-size: 14pt; -fx-font-family: Arial");
-        Button okButton = (Button) dialogPane.lookupButton(ButtonType.OK);
-        okButton.setStyle("-fx-background-color: white; -fx-text-fill: white;-fx-cursor: hand; -fx-text-fill: #0041a6;-fx-font-weight: bold;-fx-font-family: Arial");
-        dialogPane.setMinHeight(Region.USE_PREF_SIZE);
-        dialogPane.setMinWidth(400);
-        dialogPane.setPrefHeight(600);
-        dialogPane.setPrefWidth(500);
-        alert.showAndWait();
-    }
-
-    public static void main(String[] args) {
-        launch(args);
-    }
-
+    /**
+     * Fecha a janela atual
+     */
+    @FXML
     public void closeWindow(ActionEvent actionEvent) {
-        // Obtém a janela atual e fecha
-        Stage stage = (Stage) ((Node) actionEvent.getSource()).getScene().getWindow();
-        stage.close();
+        try {
+            Stage stage = (Stage) ((Node) actionEvent.getSource()).getScene().getWindow();
+            stage.close();
+
+            // Liberar recursos JPA ao fechar a aplicação se necessário
+            // JPAUtil.closeEntityManagerFactory();
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Erro ao fechar janela", e);
+        }
     }
 
+    /**
+     * Minimiza a janela atual
+     */
+    @FXML
     public void minimizeWindow(ActionEvent actionEvent) {
-        // Obtém a janela atual e minimiza
-        Stage stage = (Stage) ((Node) actionEvent.getSource()).getScene().getWindow();
-        stage.setIconified(true);
+        try {
+            Stage stage = (Stage) ((Node) actionEvent.getSource()).getScene().getWindow();
+            stage.setIconified(true);
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Erro ao minimizar janela", e);
+        }
     }
-
 }

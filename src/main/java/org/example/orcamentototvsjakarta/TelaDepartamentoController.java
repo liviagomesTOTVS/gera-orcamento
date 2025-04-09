@@ -11,7 +11,6 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.Region;
 import javafx.scene.text.TextAlignment;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
@@ -19,14 +18,22 @@ import org.example.orcamentototvsjakarta.db.dao.PcdeptoDAO;
 import org.example.orcamentototvsjakarta.db.entidade.Pcdepto;
 import org.example.orcamentototvsjakarta.model.DepartamentoModel;
 import org.example.orcamentototvsjakarta.model.ParametrosModel;
+import org.example.orcamentototvsjakarta.util.AlertUtil;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
+/**
+ * Controller da tela de seleção de departamentos.
+ * Permite selecionar os departamentos que serão incluídos no orçamento.
+ */
 public class TelaDepartamentoController {
 
+    // Componentes FXML
     @FXML private ListView<DepartamentoModel> listDepartamentos;
     @FXML private Button btnProximo;
     @FXML private Button btnAnterior;
@@ -34,28 +41,65 @@ public class TelaDepartamentoController {
     @FXML private Button btnNenhum;
     @FXML private Button btnInverter;
 
+    // Dados e dependências
     private ParametrosModel parametrosModel;
     private final PcdeptoDAO pcdeptoDAO = new PcdeptoDAO();
     private final ObservableList<DepartamentoModel> departamentos = FXCollections.observableArrayList();
 
-
-
+    /**
+     * Define o modelo de parâmetros recebido da tela anterior
+     *
+     * @param parametrosModel Modelo com os parâmetros do orçamento
+     */
     public void setParametrosModel(ParametrosModel parametrosModel) {
-        this.parametrosModel = parametrosModel;
+        this.parametrosModel = Objects.requireNonNull(parametrosModel, "ParametrosModel não pode ser nulo");
     }
 
+    /**
+     * Inicializa o controller após a injeção dos componentes FXML
+     */
     @FXML
     public void initialize() {
         carregarDepartamentos();
-        listDepartamentos.setItems(departamentos);
+        configurarListView();
+        configurarBotoes();
+    }
 
-        listDepartamentos.setCellFactory(param -> new ListCell<>() {
+    /**
+     * Configura os listeners dos botões
+     */
+    private void configurarBotoes() {
+        btnProximo.setOnAction(event -> onProximo());
+        btnAnterior.setOnAction(event -> onAnterior());
+        btnTodos.setOnAction(event -> selecionarTodos(true));
+        btnNenhum.setOnAction(event -> selecionarTodos(false));
+        btnInverter.setOnAction(event -> inverterSelecao());
+    }
+
+    /**
+     * Configura o ListView com o factory personalizado para células
+     */
+    private void configurarListView() {
+        listDepartamentos.setItems(departamentos);
+        listDepartamentos.setCellFactory(this::criarCelulaPersonalizada);
+    }
+
+    /**
+     * Cria um ListCell personalizado para os departamentos
+     */
+    private ListCell<DepartamentoModel> criarCelulaPersonalizada(ListView<DepartamentoModel> listView) {
+        return new ListCell<>() {
             private final CheckBox checkBox = new CheckBox();
             private final Label lblCodigo = new Label();
             private final Label lblDescricao = new Label();
             private final HBox hBox = new HBox(10, checkBox, lblCodigo, lblDescricao);
 
             {
+                // Inicialização dos componentes
+                configurarComponentesCelula();
+            }
+
+            private void configurarComponentesCelula() {
                 checkBox.setOnAction(event -> {
                     DepartamentoModel departamento = getItem();
                     if (departamento != null) {
@@ -82,87 +126,122 @@ public class TelaDepartamentoController {
                     setGraphic(hBox);
                 }
             }
-        });
-
-        btnProximo.setOnAction(event -> onProximo());
-        btnAnterior.setOnAction(event -> onAnterior());
-        btnTodos.setOnAction(event -> selecionarTodos(true));
-        btnNenhum.setOnAction(event -> selecionarTodos(false));
-        btnInverter.setOnAction(event -> inverterSelecao());
+        };
     }
 
+    /**
+     * Carrega os departamentos do banco de dados
+     */
     private void carregarDepartamentos() {
-        List<Pcdepto> listaDeptos = pcdeptoDAO.buscarTodos();
-        // Ordena os departamentos pelo código (convertendo para inteiro, se necessário)
-        listaDeptos.sort(Comparator.comparingInt(dep -> Integer.parseInt(dep.getId().toString())));
+        try {
+            List<Pcdepto> listaDeptos = pcdeptoDAO.buscarTodos();
+            // Ordena os departamentos pelo código (convertendo para inteiro)
+            listaDeptos.sort(Comparator.comparingInt(dep -> Integer.parseInt(dep.getId().toString())));
 
-        departamentos.clear();
-        for (Pcdepto dep : listaDeptos) {
-            DepartamentoModel model = new DepartamentoModel(false, dep.getId().toString(), dep.getDescricao());
-            departamentos.add(model);
-        }
-    }
-
-
-    private void selecionarTodos(boolean selecionar) {
-        for (DepartamentoModel dep : listDepartamentos.getItems()) {
-            dep.setSelecionado(selecionar);
-        }
-        listDepartamentos.refresh();
-    }
-
-    private void inverterSelecao() {
-        for (DepartamentoModel dep : listDepartamentos.getItems()) {
-            dep.setSelecionado(!dep.isSelecionado());
-        }
-        listDepartamentos.refresh();
-    }
-
-    private void onProximo() {
-        List<String> departamentosSelecionados = new ArrayList<>();
-
-        for (DepartamentoModel dep : listDepartamentos.getItems()) {
-            if (dep.isSelecionado()) {
-                departamentosSelecionados.add(dep.getCodigo());
+            departamentos.clear();
+            for (Pcdepto dep : listaDeptos) {
+                DepartamentoModel model = new DepartamentoModel(
+                        false,
+                        dep.getId().toString(),
+                        dep.getDescricao()
+                );
+                departamentos.add(model);
             }
+        } catch (NumberFormatException e) {
+            AlertUtil.showAlert("Erro ao converter código de departamento: " + e.getMessage(),
+                    Alert.AlertType.ERROR);
+        } catch (Exception e) {
+            AlertUtil.showAlert("Erro ao carregar departamentos: " + e.getMessage(),
+                    Alert.AlertType.ERROR);
         }
+    }
+
+    /**
+     * Seleciona ou deseleciona todos os departamentos
+     */
+    private void selecionarTodos(boolean selecionar) {
+        departamentos.forEach(dep -> dep.setSelecionado(selecionar));
+        listDepartamentos.refresh();
+    }
+
+    /**
+     * Inverte a seleção de todos os departamentos
+     */
+    private void inverterSelecao() {
+        departamentos.forEach(dep -> dep.setSelecionado(!dep.isSelecionado()));
+        listDepartamentos.refresh();
+    }
+
+    /**
+     * Avança para a próxima tela, validando a seleção
+     */
+    private void onProximo() {
+        List<String> departamentosSelecionados = obterDepartamentosSelecionados();
 
         if (departamentosSelecionados.isEmpty()) {
-            showAlert("Selecione pelo menos um departamento!", Alert.AlertType.WARNING);
+            AlertUtil.showAlert("Selecione pelo menos um departamento!", Alert.AlertType.WARNING);
             return;
         }
 
+        abrirTelaTributacao(departamentosSelecionados);
+    }
+
+    /**
+     * Obtém a lista de códigos dos departamentos selecionados
+     */
+    private List<String> obterDepartamentosSelecionados() {
+        return departamentos.stream()
+                .filter(DepartamentoModel::isSelecionado)
+                .map(DepartamentoModel::getCodigo)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Abre a tela de tributação com os parâmetros necessários
+     */
+    private void abrirTelaTributacao(List<String> departamentosSelecionados) {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/telaTributacao2.fxml"));
             Parent root = loader.load();
 
             TelaTributacaoController controller = loader.getController();
             if (controller == null) {
-                showAlert("Erro ao carregar controlador da tela de tributação!", Alert.AlertType.ERROR);
+                AlertUtil.showAlert("Erro ao carregar controlador da tela de tributação!",
+                        Alert.AlertType.ERROR);
                 return;
             }
 
-            // Passa os parâmetros da tela de parâmetros
+            // Passa os parâmetros para a próxima tela
             controller.setParametrosModel(parametrosModel);
             controller.setDepartamentosSelecionados(departamentosSelecionados);
 
+            // Configura e mostra a nova tela
             Stage stage = new Stage();
             stage.setTitle("Tributação");
             stage.setScene(new Scene(root));
             stage.initStyle(StageStyle.UNDECORATED);
             stage.show();
 
-            ((Stage) btnProximo.getScene().getWindow()).close();
+            // Fecha a tela atual
+            fecharJanelaAtual(btnProximo);
+
+        } catch (IOException e) {
+            AlertUtil.showAlert("Erro ao carregar a tela de tributação: " + e.getMessage(),
+                    Alert.AlertType.ERROR);
         } catch (Exception e) {
-            showAlert("Erro ao carregar a tela de tributação: " + e.getMessage(), Alert.AlertType.ERROR);
+            AlertUtil.showAlert("Erro inesperado: " + e.getMessage(),
+                    Alert.AlertType.ERROR);
         }
     }
 
-
+    /**
+     * Volta para a tela anterior
+     */
     private void onAnterior() {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/telaParametros12.fxml"));
             Parent root = loader.load();
+
             Stage novaJanela = new Stage();
             novaJanela.setTitle("Parâmetros");
             novaJanela.setScene(new Scene(root));
@@ -170,38 +249,36 @@ public class TelaDepartamentoController {
             novaJanela.show();
 
             // Fecha a janela atual
-            Stage janelaAtual = (Stage) btnAnterior.getScene().getWindow();
-            janelaAtual.close();
+            fecharJanelaAtual(btnAnterior);
+
         } catch (IOException e) {
-            showAlert("Erro ao carregar a tela de parâmetros!", Alert.AlertType.ERROR);
+            AlertUtil.showAlert("Erro ao carregar a tela de parâmetros: " + e.getMessage(),
+                    Alert.AlertType.ERROR);
         }
     }
 
-    private void showAlert(String message, Alert.AlertType type) {
-        Alert alert = new Alert(type);
-        alert.setTitle("AVISO!");
-        alert.setHeaderText(null);
-        alert.setContentText(message);
-        DialogPane dialogPane = alert.getDialogPane();
-        dialogPane.setStyle("-fx-background-color:  #0041a6; -fx-border-color: #2980b9; -fx-border-width: 2;");
-        dialogPane.lookup(".content").setStyle("-fx-background-color:  #0041a6; -fx-text-fill: white;-fx-font-weight: bold; -fx-font-size: 14pt; -fx-font-family: Arial");
-        Button okButton = (Button) dialogPane.lookupButton(ButtonType.OK);
-        okButton.setStyle("-fx-background-color: white; -fx-text-fill: #0041a6;-fx-font-weight: bold;-fx-font-family: Arial");
-        dialogPane.setMinHeight(Region.USE_PREF_SIZE);
-        dialogPane.setMinWidth(400);
-        dialogPane.setPrefHeight(150);
-        dialogPane.setPrefWidth(500);
-        alert.showAndWait();
+    /**
+     * Fecha a janela que contém o botão especificado
+     */
+    private void fecharJanelaAtual(Button botao) {
+        Stage janelaAtual = (Stage) botao.getScene().getWindow();
+        janelaAtual.close();
     }
 
+    /**
+     * Fecha a janela atual
+     */
+    @FXML
     public void closeWindow(ActionEvent actionEvent) {
-        // Obtém a janela atual e fecha
         Stage stage = (Stage) ((Node) actionEvent.getSource()).getScene().getWindow();
         stage.close();
     }
 
+    /**
+     * Minimiza a janela atual
+     */
+    @FXML
     public void minimizeWindow(ActionEvent actionEvent) {
-        // Obtém a janela atual e minimiza
         Stage stage = (Stage) ((Node) actionEvent.getSource()).getScene().getWindow();
         stage.setIconified(true);
     }

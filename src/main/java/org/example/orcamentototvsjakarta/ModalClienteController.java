@@ -3,32 +3,63 @@ package org.example.orcamentototvsjakarta;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.stage.Stage;
 import org.example.orcamentototvsjakarta.DTO.ClienteDTO;
 import org.example.orcamentototvsjakarta.db.dao.PcclientDAO;
+import org.example.orcamentototvsjakarta.util.AlertUtil;
 
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
+/**
+ * Controller do modal de pesquisa e seleção de cliente.
+ */
 public class ModalClienteController {
+    private static final Logger LOGGER = Logger.getLogger(ModalClienteController.class.getName());
+    private static final int LIMITE_RESULTADOS = 50;
 
     @FXML private TextField txtFiltro;
     @FXML private TableView<ClienteDTO> tabelaClientes;
     @FXML private TableColumn<ClienteDTO, Integer> colCodigo;
     @FXML private TableColumn<ClienteDTO, String> colNome;
     @FXML private TableColumn<ClienteDTO, String> colCnpj;
+    @FXML private Button btnBuscar;
+    @FXML private Button btnSelecionar;
+    @FXML private Button btnCancelar;
 
     private final PcclientDAO dao = new PcclientDAO();
     private ClienteDTO clienteSelecionado;
 
+    /**
+     * Inicializa o controller após a injeção dos componentes FXML
+     */
     @FXML
     public void initialize() {
+        configurarColunas();
+        configurarEventos();
+        configurarBuscarAoEntrar();
+    }
+
+    /**
+     * Configura as colunas da tabela
+     */
+    private void configurarColunas() {
         colCodigo.setCellValueFactory(data -> new SimpleObjectProperty<>(data.getValue().getCodcli()));
         colNome.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getNome()));
-        colCnpj.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getCnpj())); // se tiver no DTO
+        colCnpj.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getCnpjFormatado()));
+    }
 
-        // Dê dois cliques para selecionar o cliente
+    /**
+     * Configura os eventos de interação com a tabela e outros componentes
+     */
+    private void configurarEventos() {
+        // Configuração de duplo-clique para selecionar cliente
         tabelaClientes.setRowFactory(tv -> {
             TableRow<ClienteDTO> row = new TableRow<>();
             row.setOnMouseClicked(event -> {
@@ -39,38 +70,103 @@ public class ModalClienteController {
             });
             return row;
         });
+
+        // Habilitar ou desabilitar botão de selecionar com base na seleção da tabela
+        tabelaClientes.getSelectionModel().selectedItemProperty().addListener(
+                (observable, oldValue, newValue) -> btnSelecionar.setDisable(newValue == null));
+
+        // Configurar tecla Enter para buscar quando o foco estiver no campo de filtro
+        txtFiltro.setOnKeyPressed(this::verificarTeclaEnterFiltro);
     }
 
+    /**
+     * Configura para buscar ao abrir o modal, se houver texto no filtro
+     */
+    private void configurarBuscarAoEntrar() {
+        // Focar o campo de filtro ao iniciar
+        txtFiltro.requestFocus();
 
-    @FXML
-    public void onBuscar() {
-        System.out.println("Buscando Cliente");
-        String filtro = txtFiltro.getText().trim();
-        if (filtro.isEmpty())
-            System.out.println("Filtro nulo");;
-
-        List<ClienteDTO> resultados = dao.buscarDTOPorFiltro(filtro, 50);
-        tabelaClientes.setItems(FXCollections.observableArrayList(resultados));
+        // Executa busca inicial (vazia para mostrar todos)
+        executarBusca();
     }
 
+    /**
+     * Verifica se a tecla Enter foi pressionada no campo de filtro
+     */
+    private void verificarTeclaEnterFiltro(KeyEvent event) {
+        if (event.getCode() == KeyCode.ENTER) {
+            executarBusca();
+            event.consume();
+        }
+    }
 
+    /**
+     * Executa a busca de clientes com base no texto do filtro
+     */
+    private void executarBusca() {
+        try {
+            String filtro = txtFiltro.getText().trim();
+            LOGGER.info("Buscando clientes com filtro: " + filtro);
+
+            List<ClienteDTO> resultados = dao.buscarDTOPorFiltro(filtro, LIMITE_RESULTADOS);
+            tabelaClientes.setItems(FXCollections.observableArrayList(resultados));
+
+            if (resultados.isEmpty()) {
+                LOGGER.info("Nenhum cliente encontrado com o filtro: " + filtro);
+                tabelaClientes.setPlaceholder(new Label("Nenhum cliente encontrado com o filtro informado"));
+            } else {
+                LOGGER.info("Encontrados " + resultados.size() + " clientes");
+                tabelaClientes.getSelectionModel().selectFirst();
+                tabelaClientes.requestFocus();
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Erro ao buscar clientes", e);
+            AlertUtil.showAlert("Erro ao buscar clientes: " + e.getMessage(), Alert.AlertType.ERROR);
+        }
+    }
+
+    /**
+     * Método chamado pelo botão Buscar
+     */
     @FXML
-    public void onSelecionar() {
+    public void onBuscar(ActionEvent event) {
+        executarBusca();
+    }
+
+    /**
+     * Método chamado pelo botão Selecionar
+     */
+    @FXML
+    public void onSelecionar(ActionEvent event) {
         clienteSelecionado = tabelaClientes.getSelectionModel().getSelectedItem();
-        fechar();
+        if (clienteSelecionado != null) {
+            LOGGER.info("Cliente selecionado: " + clienteSelecionado.getCodcli() + " - " + clienteSelecionado.getNome());
+            fechar();
+        } else {
+            AlertUtil.showAlert("Selecione um cliente da tabela", Alert.AlertType.WARNING);
+        }
     }
 
+    /**
+     * Método chamado pelo botão Cancelar
+     */
     @FXML
-    public void onCancelar() {
+    public void onCancelar(ActionEvent event) {
         clienteSelecionado = null;
         fechar();
     }
 
+    /**
+     * Fecha o modal
+     */
     private void fechar() {
         Stage stage = (Stage) txtFiltro.getScene().getWindow();
         stage.close();
     }
 
+    /**
+     * Retorna o cliente selecionado
+     */
     public ClienteDTO getClienteSelecionado() {
         return clienteSelecionado;
     }

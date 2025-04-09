@@ -65,5 +65,6 @@ public class OrcamentoModel {
     public BigDecimal getVldesconto() {
         return vldesconto;
     }
+
 }
 
