@@ -159,17 +159,33 @@ public class TelaOrcamentosController {
             }
 
             LOGGER.info("Carregados " + orcamentos.size() + " orçamentos");
+        } catch (IllegalStateException e) {
+            // Problema com o EntityManager/conexão ao banco
+            LOGGER.log(Level.SEVERE, "Falha na conexão com o banco de dados", e);
+            // Mensagem amigável para o usuário
+            AlertUtil.showAlert("Não foi possível conectar ao banco de dados. Verifique sua conexão e tente novamente.",
+                    Alert.AlertType.ERROR);
+        } catch (jakarta.persistence.PersistenceException e) {
+            // Problemas específicos de persistência
+            LOGGER.log(Level.SEVERE, "Erro de persistência ao carregar orçamentos", e);
+            AlertUtil.showAlert("Ocorreu um erro ao acessar os dados de orçamentos. Por favor, tente novamente mais tarde.",
+                    Alert.AlertType.ERROR);
         } catch (Exception ex) {
-            LOGGER.log(Level.SEVERE, "Erro ao carregar orçamentos", ex);
-            AlertUtil.showAlert("Erro ao carregar orçamentos: " + ex.getMessage(),
+            // Erro genérico
+            LOGGER.log(Level.SEVERE, "Erro inesperado ao carregar orçamentos", ex);
+            AlertUtil.showAlert("Não foi possível carregar a lista de orçamentos.",
                     Alert.AlertType.ERROR);
         } finally {
             if (em != null) {
-                em.close();
+                try {
+                    em.close();
+                } catch (Exception e) {
+                    LOGGER.log(Level.WARNING, "Erro ao fechar EntityManager", e);
+                    // Não exibimos isso para o usuário, só registramos no log
+                }
             }
         }
     }
-
 
 
     /**
@@ -178,20 +194,30 @@ public class TelaOrcamentosController {
      * @param orcamentoId ID do orçamento a ser visualizado
      */
     private void abrirTelaItensOrcamento(Long orcamentoId) {
+        if (orcamentoId == null) {
+            LOGGER.warning("Tentativa de abrir tela de itens com ID nulo");
+            return;
+        }
+
+        Stage stage = null;
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/telaItensOrcamento.fxml"));
             Parent root = loader.load();
 
             TelaItensOrcamentoController itensController = loader.getController();
+            if (itensController == null) {
+                throw new IllegalStateException("Controlador da tela de itens não foi inicializado corretamente");
+            }
 
-            Stage stage = new Stage();
+            stage = new Stage();
             stage.setTitle("Itens do Orçamento #" + orcamentoId);
             stage.setScene(new Scene(root));
 
             stage.setResizable(false);
+            Stage finalStage = stage;
             stage.maximizedProperty().addListener((observable, oldValue, newValue) -> {
                 if (newValue) {
-                    stage.setMaximized(false);
+                    finalStage.setMaximized(false);
                 }
             });
 
@@ -203,11 +229,36 @@ public class TelaOrcamentosController {
 
             LOGGER.info("Aberta tela de itens para o orçamento " + orcamentoId);
         } catch (IOException e) {
-            LOGGER.log(Level.SEVERE, "Erro ao abrir tela de itens", e);
-            AlertUtil.showAlert("Erro ao abrir tela de itens: " + e.getMessage(),
+            // Erro ao carregar o arquivo FXML
+            LOGGER.log(Level.SEVERE, "Erro ao carregar tela de itens do orçamento", e);
+            AlertUtil.showAlert("Não foi possível abrir a tela de itens do orçamento. Arquivo de layout não encontrado.",
                     Alert.AlertType.ERROR);
+
+            // Fechar a janela se ela foi criada mas houve erro no processo
+            if (stage != null) {
+                stage.close();
+            }
+        } catch (IllegalStateException e) {
+            // Erro específico do controlador
+            LOGGER.log(Level.SEVERE, "Erro de inicialização da tela de itens", e);
+            AlertUtil.showAlert("Erro ao inicializar a tela de itens do orçamento.",
+                    Alert.AlertType.ERROR);
+
+            if (stage != null) {
+                stage.close();
+            }
+        } catch (Exception e) {
+            // Erro genérico
+            LOGGER.log(Level.SEVERE, "Erro inesperado ao abrir tela de itens", e);
+            AlertUtil.showAlert("Ocorreu um erro ao abrir os detalhes do orçamento.",
+                    Alert.AlertType.ERROR);
+
+            if (stage != null) {
+                stage.close();
+            }
         }
     }
+
 
     /**
      * Fecha a tela atual
@@ -234,14 +285,22 @@ public class TelaOrcamentosController {
             em = JPAUtil.getEntityManager();
 
             // Converter string de IDs para lista de Long
-            List<Long> ids = Arrays.stream(numorcasGerados.split(","))
-                    .map(String::trim)
-                    .filter(s -> !s.isEmpty())
-                    .map(Long::parseLong)
-                    .collect(Collectors.toList());
+            List<Long> ids = new ArrayList<>();
+            try {
+                ids = Arrays.stream(numorcasGerados.split(","))
+                        .map(String::trim)
+                        .filter(s -> !s.isEmpty())
+                        .map(Long::parseLong)
+                        .collect(Collectors.toList());
+            } catch (NumberFormatException e) {
+                LOGGER.log(Level.WARNING, "Erro ao converter IDs de orçamentos: " + numorcasGerados, e);
+                throw new IllegalArgumentException("Os números de orçamento informados não estão em um formato válido.");
+            }
 
             if (ids.isEmpty()) {
                 LOGGER.warning("Lista de IDs de orçamentos está vazia após parse");
+                AlertUtil.showAlert("Nenhum orçamento válido foi gerado.",
+                        Alert.AlertType.WARNING);
                 return;
             }
 
@@ -265,20 +324,31 @@ public class TelaOrcamentosController {
             LOGGER.info("Carregados " + orcamentos.size() + " orçamentos específicos");
 
             if (orcamentos.isEmpty()) {
-                AlertUtil.showAlert("Nenhum orçamento encontrado com os IDs informados.",
+                AlertUtil.showAlert("Os orçamentos foram gerados, mas não puderam ser visualizados neste momento.",
                         Alert.AlertType.WARNING);
             }
-        } catch (NumberFormatException e) {
-            LOGGER.log(Level.WARNING, "Erro ao converter IDs de orçamentos", e);
-            AlertUtil.showAlert("Formato inválido de IDs de orçamentos: " + e.getMessage(),
+        } catch (IllegalArgumentException e) {
+            // Erro já tratado na conversão de IDs
+            LOGGER.log(Level.WARNING, "Erro de formato nos IDs", e);
+            AlertUtil.showAlert(e.getMessage(), Alert.AlertType.ERROR);
+        } catch (jakarta.persistence.PersistenceException e) {
+            // Problemas específicos de persistência
+            LOGGER.log(Level.SEVERE, "Erro de persistência ao carregar orçamentos específicos", e);
+            AlertUtil.showAlert("Não foi possível acessar os orçamentos gerados no banco de dados.",
                     Alert.AlertType.ERROR);
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Erro ao carregar orçamentos específicos", e);
-            AlertUtil.showAlert("Erro ao carregar orçamentos: " + e.getMessage(),
+            // Erro genérico
+            LOGGER.log(Level.SEVERE, "Erro inesperado ao carregar orçamentos específicos", e);
+            AlertUtil.showAlert("Ocorreu um erro ao carregar os orçamentos gerados.",
                     Alert.AlertType.ERROR);
         } finally {
             if (em != null) {
-                em.close();
+                try {
+                    em.close();
+                } catch (Exception e) {
+                    LOGGER.log(Level.WARNING, "Erro ao fechar EntityManager", e);
+                    // Não exibimos isso para o usuário
+                }
             }
         }
     }
@@ -288,26 +358,47 @@ public class TelaOrcamentosController {
      */
     @FXML
     private void onVoltarMenu() {
+        Stage novaStage = null;
         try {
             // Fecha a tela atual
             Stage stageAtual = (Stage) tableOrcamentos.getScene().getWindow();
-            stageAtual.close();
 
             // Abre a tela inicial (TelaParametros)
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/telaParametros12.fxml"));
             Parent root = loader.load();
 
-            Stage novaStage = new Stage();
+            novaStage = new Stage();
             novaStage.setTitle("Novo Orçamento");
             novaStage.setScene(new Scene(root));
             novaStage.initStyle(StageStyle.UNDECORATED);
             novaStage.show();
 
+            // Apenas feche a tela atual se a nova foi aberta com sucesso
+            stageAtual.close();
+
             LOGGER.info("Retornando ao menu principal");
         } catch (IOException e) {
-            LOGGER.log(Level.SEVERE, "Erro ao abrir tela de parâmetros", e);
-            AlertUtil.showAlert("Erro ao retornar ao menu principal: " + e.getMessage(),
-                    Alert.AlertType.ERROR);
+            LOGGER.log(Level.SEVERE, "Erro ao carregar tela de parâmetros", e);
+
+            if (novaStage != null) {
+                novaStage.close();
+            }
+
+            // Mensagem mais específica baseada no erro
+            String mensagemErro = "Não foi possível retornar ao menu principal.";
+            if (e.getMessage() != null && e.getMessage().contains("telaParametros12.fxml")) {
+                mensagemErro = "Arquivo de layout do menu principal não encontrado.";
+            }
+
+            AlertUtil.showAlert(mensagemErro, Alert.AlertType.ERROR);
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Erro inesperado ao retornar ao menu", e);
+
+            if (novaStage != null) {
+                novaStage.close();
+            }
+
+            AlertUtil.showAlert("Ocorreu um erro ao retornar ao menu principal.", Alert.AlertType.ERROR);
         }
     }
 

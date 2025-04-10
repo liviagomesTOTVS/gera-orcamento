@@ -1,6 +1,7 @@
 package org.example.orcamentototvsjakarta.DTO;
 
 import java.math.BigDecimal;
+import java.util.logging.Logger;
 
 public class OrcamentoParams {
 
@@ -37,14 +38,40 @@ public class OrcamentoParams {
         this.codcli = codcli;
     }
 
-    public void setValorMaximo(BigDecimal valorMaximo) {
-        this.valorMaximo = valorMaximo;
+    public BigDecimal getValorMaximo() {
+        // Garantir que nunca retorne null
+        return valorMaximo != null ? valorMaximo : BigDecimal.valueOf(10000);
     }
 
-    // Sobrecarga para aceitar Double para compatibilidade com código existente
-    public void setValorMaximo(Double valorMaximo) {
-        this.valorMaximo = valorMaximo != null ? BigDecimal.valueOf(valorMaximo) : null;
+    public void setValorMaximo(BigDecimal valorMaximo) {
+        if (valorMaximo != null && valorMaximo.compareTo(BigDecimal.ZERO) > 0) {
+            this.valorMaximo = valorMaximo;
+            // Log para depuração
+            Logger.getLogger(OrcamentoParams.class.getName())
+                    .info("Valor máximo definido (BigDecimal): " + valorMaximo);
+        } else {
+            // Usar valor padrão se nulo ou inválido
+            this.valorMaximo = BigDecimal.valueOf(10000);
+            Logger.getLogger(OrcamentoParams.class.getName())
+                    .warning("Valor máximo inválido, usando padrão: 10000");
+        }
     }
+
+    // Sobrecarga para Double
+    public void setValorMaximo(Double valorMaximo) {
+        if (valorMaximo != null && valorMaximo > 0) {
+            this.valorMaximo = BigDecimal.valueOf(valorMaximo);
+            // Log para depuração
+            Logger.getLogger(OrcamentoParams.class.getName())
+                    .info("Valor máximo definido (Double): " + valorMaximo);
+        } else {
+            // Usar valor padrão se nulo ou inválido
+            this.valorMaximo = BigDecimal.valueOf(10000);
+            Logger.getLogger(OrcamentoParams.class.getName())
+                    .warning("Valor máximo (Double) inválido, usando padrão: 10000");
+        }
+    }
+
 
     public Integer getRca() {
         return rca;
@@ -132,10 +159,6 @@ public class OrcamentoParams {
 
     public Integer getNumprevenda() {
         return seq;
-    }
-
-    public BigDecimal getValorMaximo() {
-        return valorMaximo;
     }
 
 

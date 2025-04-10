@@ -190,9 +190,6 @@ public class TelaTributacaoController {
         listTributacoes.refresh();
     }
 
-    /**
-     * Avança para a próxima tela, gerando os orçamentos
-     */
     @FXML
     private void onProximo() {
         EntityManager em = null;
@@ -219,7 +216,7 @@ public class TelaTributacaoController {
             String produtosString = buscarEFormatarProdutos(em, params, tributacoesSelecionadas, departamentosSelecionados);
 
             if (produtosString.isEmpty()) {
-                AlertUtil.showAlert("Nenhum produto foi selecionado para este cliente.\n" +
+                AlertUtil.showAlert("Nenhum produto encontrado para este cliente.\n" +
                         "Verifique se ele possui tributação válida.", Alert.AlertType.WARNING);
                 return;
             }
@@ -244,16 +241,51 @@ public class TelaTributacaoController {
             navegarParaTelaOrcamentos(numorcasGerados);
 
         } catch (NumberFormatException e) {
+            // Log do erro completo para debug
             LOGGER.log(Level.SEVERE, "Erro ao converter valores", e);
-            AlertUtil.showAlert("Erro ao converter valores: " + e.getMessage(),
+
+            // Mensagem amigável para o usuário
+            AlertUtil.showAlert("Alguns valores informados são inválidos. Por favor, verifique os dados e tente novamente.",
                     Alert.AlertType.ERROR);
-        } catch (Exception e) {
+        } catch (IllegalArgumentException e) {
+            // Erros de validação dos parâmetros
+            LOGGER.log(Level.SEVERE, "Erro nos parâmetros do orçamento", e);
+
+            // Exibir apenas a mensagem principal sem o stack trace
+            String mensagem = e.getMessage();
+            if (mensagem != null && mensagem.contains(":")) {
+                mensagem = mensagem.split(":", 2)[0] + ".";
+            }
+            AlertUtil.showAlert("Parâmetros inválidos: " + mensagem, Alert.AlertType.ERROR);
+        } catch (RuntimeException e) {
+            // Erros de runtime genéricos
             LOGGER.log(Level.SEVERE, "Erro ao processar orçamentos", e);
-            AlertUtil.showAlert("Erro ao processar orçamentos: " + e.getMessage(),
+
+            // Mensagem genérica para o usuário
+            AlertUtil.showAlert("Ocorreu um erro ao processar os orçamentos. Por favor, tente novamente mais tarde.",
+                    Alert.AlertType.ERROR);
+        } catch (IOException e) {
+            // Erro ao navegar para próxima tela
+            LOGGER.log(Level.SEVERE, "Erro ao navegar para tela de orçamentos", e);
+
+            // Os orçamentos foram criados, mas houve erro na navegação
+            AlertUtil.showAlert("Os orçamentos foram gerados com sucesso, mas houve um erro ao abrir a próxima tela.",
+                    Alert.AlertType.WARNING);
+        } catch (Exception e) {
+            // Captura qualquer outra exceção não prevista
+            LOGGER.log(Level.SEVERE, "Erro não esperado ao processar orçamentos", e);
+
+            // Mensagem genérica para o usuário
+            AlertUtil.showAlert("Ocorreu um erro inesperado. A operação foi interrompida.",
                     Alert.AlertType.ERROR);
         } finally {
             if (em != null) {
-                em.close();
+                try {
+                    em.close();
+                } catch (Exception e) {
+                    // Apenas log, sem alertar o usuário
+                    LOGGER.log(Level.WARNING, "Erro ao fechar EntityManager", e);
+                }
             }
             btnProximo.setDisable(false);
             btnProximo.setText("Próximo");

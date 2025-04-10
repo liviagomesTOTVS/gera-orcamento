@@ -437,17 +437,53 @@ public class TelaParametrosController {
             comboRamoAtividade.setValue(codRamo != null ? codRamo.toString() : NAO_INFORMADO);
 
             // Carrega opções relacionadas
-            carregarOpcoesCobranca(codCobranca);
-            carregarOpcoesPlanoPagamento(codPlano != null ? codPlano.intValue() : null);
+            try {
+                carregarOpcoesCobranca(codCobranca);
+            } catch (Exception e) {
+                // Log detalhado para depuração
+                LOGGER.log(Level.WARNING, "Erro ao carregar opções de cobrança para o cliente " + codcli, e);
+
+                // Apenas registra o erro e continua, sem exibir alerta ao usuário
+                // para evitar interrupção do fluxo por erro não crítico
+                comboCobranca.getSelectionModel().clearSelection();
+            }
+
+            try {
+                carregarOpcoesPlanoPagamento(codPlano != null ? codPlano.intValue() : null);
+            } catch (Exception e) {
+                // Log detalhado para depuração
+                LOGGER.log(Level.WARNING, "Erro ao carregar planos de pagamento para o cliente " + codcli, e);
+
+                // Apenas registra o erro e continua, sem exibir alerta ao usuário
+                comboPlanoPagamento.getSelectionModel().clearSelection();
+            }
 
             // Campos de visualização apenas
             comboPraca.setDisable(true);
             comboRamoAtividade.setDisable(true);
 
         } catch (Exception e) {
+            // Log detalhado para depuração
             LOGGER.log(Level.WARNING, "Erro ao carregar dados do cliente: " + codcli, e);
-            AlertUtil.showAlert("Erro ao carregar dados do cliente: " + e.getMessage(), Alert.AlertType.ERROR);
+
+            // Verifica o tipo de erro para apresentar mensagem mais específica
+            String mensagemErro;
+            if (e instanceof java.sql.SQLException) {
+                mensagemErro = "Ocorreu um erro ao consultar os dados do cliente no banco de dados.";
+            } else if (e instanceof NullPointerException) {
+                mensagemErro = "Erro ao processar os dados do cliente. Alguns campos podem não ter sido inicializados corretamente.";
+            } else {
+                // Mensagem genérica para outros tipos de erro
+                mensagemErro = "Não foi possível carregar todos os dados do cliente. Porém, você pode continuar o processo.";
+            }
+
+            // Exibe mensagem amigável para o usuário sem detalhes técnicos
+            AlertUtil.showAlert(mensagemErro, Alert.AlertType.WARNING);
+
+            // Tenta recuperar parte dos dados, mantendo o cliente selecionado
+            // mas limpando campos relacionados que podem estar com problemas
             limparDadosRelacionadosCliente();
+            desabilitarCamposRelacionadosAoCliente(false);
         }
     }
 
@@ -576,13 +612,22 @@ public class TelaParametrosController {
 
             // Tratamento seguro para evitar NullPointerException
             Double valorMaxOrcamento = null;
-            if (txtValorMaxOrcamento != null) {
+            if (txtValorMaxOrcamento != null && !txtValorMaxOrcamento.getText().trim().isEmpty()) {
                 valorMaxOrcamento = getDoubleValue(txtValorMaxOrcamento, "Valor Máx. do Orçamento");
+                // Registre o valor para depuração
+                LOGGER.info("Valor máximo informado pelo usuário: " + valorMaxOrcamento);
+            } else {
+                LOGGER.info("Campo de valor máximo vazio, usando valor padrão");
             }
 
             Integer qtdeMaxItens = null;
             if (txtQtdeMaxItens != null) {
                 qtdeMaxItens = getIntegerValue(txtQtdeMaxItens, "Qtde Máx. Itens no Orçamento");
+                if (qtdeMaxItens == null) {
+                    AlertUtil.showAlert("Informe a quantidade máxima de itens no orçamento!", Alert.AlertType.WARNING);
+                    txtQtdeMaxItens.requestFocus();
+                    return null;
+                }
             }
 
             FilialDTO filialDTO = comboFilial.getSelectionModel().getSelectedItem();
@@ -612,6 +657,9 @@ public class TelaParametrosController {
                     qtdeMaxItens,
                     valorMaxOrcamento // Se null, o model assume o valor padrão
             );
+
+            // Registre o valor após criar o modelo para verificar se foi preservado
+            LOGGER.info("Valor máximo no ParametrosModel: " + parametros.getValorMaxOrcamento());
 
             // Define o tipo de preço (C = Custo, V = Venda)
             parametros.setTipoPreco((cbPrecoCusto != null && cbPrecoCusto.isSelected()) ? "C" : "V");

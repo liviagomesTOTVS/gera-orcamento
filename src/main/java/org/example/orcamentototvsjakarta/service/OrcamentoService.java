@@ -265,6 +265,15 @@ public class OrcamentoService {
                 BigDecimal numOrca = BigDecimal.valueOf(orcamento.getId());
                 if (temItens(em, numOrca)) {
                     BigDecimal total = calcularTotal(em, numOrca);
+
+                    // ADICIONAR ESTA VERIFICAÇÃO:
+                    if (total.compareTo(valorMaximoOrcamento) > 0) {
+                        LOGGER.warning("Orçamento " + numOrca + " com valor total " + total +
+                                " excede o limite máximo de " + valorMaximoOrcamento + ". Removendo orçamento.");
+                        removerOrcamentoSemItens(em, numOrca);
+                        continue;
+                    }
+
                     orcamento.setVltotal(total);
                     orcamentosValidos.add(orcamento);
                 } else {

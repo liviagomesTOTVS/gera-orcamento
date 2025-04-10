@@ -22,6 +22,9 @@ public class ParametrosModel {
     public ParametrosModel(String cliente, String filial, String praca, String ramoAtividade,
                            String planoPagamento, String cobranca, String rca, String supervisor,
                            Integer qtdeMaxItens, Double valorMaxOrcamento) {
+        // [log para depuração]
+        System.out.println("ParametrosModel recebeu valorMaxOrcamento: " + valorMaxOrcamento);
+
         this.cliente = new SimpleStringProperty(cliente);
         this.filial = new SimpleStringProperty(filial);
         this.praca = new SimpleStringProperty(praca);
@@ -31,7 +34,15 @@ public class ParametrosModel {
         this.rca = new SimpleStringProperty(rca);
         this.supervisor = new SimpleStringProperty(supervisor);
         this.qtdeMaxItens = new SimpleIntegerProperty(qtdeMaxItens != null ? qtdeMaxItens : 10);
-        this.valorMaxOrcamento = new BigDecimal(valorMaxOrcamento != null ? valorMaxOrcamento : 10000);
+
+        // Correto:
+        this.valorMaxOrcamento = valorMaxOrcamento != null ?
+                BigDecimal.valueOf(valorMaxOrcamento) :
+                BigDecimal.valueOf(10000);
+
+        // [outro log para confirmar]
+        System.out.println("ParametrosModel definiu valorMaxOrcamento: " + this.valorMaxOrcamento);
+
         validarParametros();
     }
 
@@ -96,10 +107,6 @@ public class ParametrosModel {
     public String getRca() { return rca.get(); }
     public String getSupervisor() { return supervisor.get(); }
     public Integer getQtdeMaxItens() { return qtdeMaxItens.get(); }
-
-    public void setValorMaxOrcamento(BigDecimal valorMaxOrcamento) {
-        this.valorMaxOrcamento = valorMaxOrcamento;
-    }
 
     // Sobrecarga para compatibilidade com código existente
     public void setValorMaxOrcamento(Double valorMaxOrcamento) {

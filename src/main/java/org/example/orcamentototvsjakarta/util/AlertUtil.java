@@ -58,7 +58,7 @@ public class AlertUtil {
         // Dimensões do diálogo
         dialogPane.setMinHeight(Region.USE_PREF_SIZE);
         dialogPane.setMinWidth(400);
-        dialogPane.setPrefHeight(300);
+        dialogPane.setPrefHeight(200);
         dialogPane.setPrefWidth(500);
     }
 }

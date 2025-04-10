@@ -41,10 +41,22 @@ public class ModalClienteController {
      */
     @FXML
     public void initialize() {
-        configurarColunas();
-        configurarEventos();
-        configurarBuscarAoEntrar();
+        try {
+            configurarColunas();
+            configurarEventos();
+            configurarBuscarAoEntrar();
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Erro ao inicializar o modal de cliente", e);
+            AlertUtil.showAlert("Erro ao inicializar a tela de busca de cliente. Detalhes: " + e.getMessage(),
+                    Alert.AlertType.ERROR);
+
+            // Desabilitar interações em caso de erro crítico
+            if (txtFiltro != null) txtFiltro.setDisable(true);
+            if (btnBuscar != null) btnBuscar.setDisable(true);
+            if (tabelaClientes != null) tabelaClientes.setDisable(true);
+        }
     }
+
 
     /**
      * Configura as colunas da tabela
@@ -108,6 +120,11 @@ public class ModalClienteController {
             String filtro = txtFiltro.getText().trim();
             LOGGER.info("Buscando clientes com filtro: " + filtro);
 
+            // Verificar se DAO está disponível
+            if (dao == null) {
+                throw new IllegalStateException("Componente de acesso a dados não inicializado");
+            }
+
             List<ClienteDTO> resultados = dao.buscarDTOPorFiltro(filtro, LIMITE_RESULTADOS);
             tabelaClientes.setItems(FXCollections.observableArrayList(resultados));
 
@@ -119,9 +136,21 @@ public class ModalClienteController {
                 tabelaClientes.getSelectionModel().selectFirst();
                 tabelaClientes.requestFocus();
             }
+        } catch (IllegalStateException e) {
+            // Erro específico para problemas de inicialização
+            LOGGER.log(Level.SEVERE, "Erro de inicialização", e);
+            AlertUtil.showAlert("Não foi possível realizar a busca. Componente não inicializado corretamente.",
+                    Alert.AlertType.ERROR);
+        } catch (jakarta.persistence.PersistenceException e) {
+            // Erro específico de banco de dados
+            LOGGER.log(Level.SEVERE, "Erro de banco de dados", e);
+            AlertUtil.showAlert("Erro de banco de dados ao buscar clientes. Verifique sua conexão.",
+                    Alert.AlertType.ERROR);
         } catch (Exception e) {
+            // Erros genéricos
             LOGGER.log(Level.SEVERE, "Erro ao buscar clientes", e);
-            AlertUtil.showAlert("Erro ao buscar clientes: " + e.getMessage(), Alert.AlertType.ERROR);
+            AlertUtil.showAlert("Não foi possível completar a busca de clientes.",
+                    Alert.AlertType.ERROR);
         }
     }
 
@@ -138,12 +167,17 @@ public class ModalClienteController {
      */
     @FXML
     public void onSelecionar(ActionEvent event) {
-        clienteSelecionado = tabelaClientes.getSelectionModel().getSelectedItem();
-        if (clienteSelecionado != null) {
-            LOGGER.info("Cliente selecionado: " + clienteSelecionado.getCodcli() + " - " + clienteSelecionado.getNome());
-            fechar();
-        } else {
-            AlertUtil.showAlert("Selecione um cliente da tabela", Alert.AlertType.WARNING);
+        try {
+            clienteSelecionado = tabelaClientes.getSelectionModel().getSelectedItem();
+            if (clienteSelecionado != null) {
+                LOGGER.info("Cliente selecionado: " + clienteSelecionado.getCodcli() + " - " + clienteSelecionado.getNome());
+                fechar();
+            } else {
+                AlertUtil.showAlert("Selecione um cliente da tabela", Alert.AlertType.WARNING);
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Erro ao selecionar cliente", e);
+            AlertUtil.showAlert("Ocorreu um erro ao selecionar o cliente", Alert.AlertType.ERROR);
         }
     }
 
@@ -160,8 +194,17 @@ public class ModalClienteController {
      * Fecha o modal
      */
     private void fechar() {
-        Stage stage = (Stage) txtFiltro.getScene().getWindow();
-        stage.close();
+        try {
+            Stage stage = (Stage) txtFiltro.getScene().getWindow();
+            if (stage != null) {
+                stage.close();
+            } else {
+                LOGGER.warning("Tentativa de fechar janela, mas referência é nula");
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Erro ao fechar janela", e);
+            // Não exibimos alerta ao usuário já que estamos fechando a janela de qualquer forma
+        }
     }
 
     /**

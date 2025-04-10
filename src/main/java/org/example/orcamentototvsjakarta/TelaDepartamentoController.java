@@ -147,11 +147,28 @@ public class TelaDepartamentoController {
                 );
                 departamentos.add(model);
             }
+
+            if (departamentos.isEmpty()) {
+                // Log para depuração
+                System.out.println("Aviso: Nenhum departamento encontrado na base de dados");
+                AlertUtil.showAlert("Não foram encontrados departamentos cadastrados no sistema.",
+                        Alert.AlertType.WARNING);
+            }
         } catch (NumberFormatException e) {
-            AlertUtil.showAlert("Erro ao converter código de departamento: " + e.getMessage(),
-                    Alert.AlertType.ERROR);
+            // Log detalhado para depuração
+            System.err.println("Erro ao converter código de departamento: " + e.getMessage());
+            e.printStackTrace();
+
+            // Mensagem amigável para o usuário
+            AlertUtil.showAlert("Alguns departamentos possuem código em formato inválido e foram ignorados.",
+                    Alert.AlertType.WARNING);
         } catch (Exception e) {
-            AlertUtil.showAlert("Erro ao carregar departamentos: " + e.getMessage(),
+            // Log detalhado para depuração
+            System.err.println("Erro ao carregar departamentos: " + e.getMessage());
+            e.printStackTrace();
+
+            // Mensagem amigável para o usuário
+            AlertUtil.showAlert("Não foi possível carregar a lista de departamentos.",
                     Alert.AlertType.ERROR);
         }
     }
@@ -176,14 +193,24 @@ public class TelaDepartamentoController {
      * Avança para a próxima tela, validando a seleção
      */
     private void onProximo() {
-        List<String> departamentosSelecionados = obterDepartamentosSelecionados();
+        try {
+            List<String> departamentosSelecionados = obterDepartamentosSelecionados();
 
-        if (departamentosSelecionados.isEmpty()) {
-            AlertUtil.showAlert("Selecione pelo menos um departamento!", Alert.AlertType.WARNING);
-            return;
+            if (departamentosSelecionados.isEmpty()) {
+                AlertUtil.showAlert("Selecione pelo menos um departamento!", Alert.AlertType.WARNING);
+                return;
+            }
+
+            abrirTelaTributacao(departamentosSelecionados);
+        } catch (Exception e) {
+            // Log detalhado para depuração
+            System.err.println("Erro inesperado ao avançar para próxima tela: " + e.getMessage());
+            e.printStackTrace();
+
+            // Mensagem amigável para o usuário
+            AlertUtil.showAlert("Ocorreu um erro ao tentar avançar para a próxima etapa.",
+                    Alert.AlertType.ERROR);
         }
-
-        abrirTelaTributacao(departamentosSelecionados);
     }
 
     /**
@@ -200,15 +227,14 @@ public class TelaDepartamentoController {
      * Abre a tela de tributação com os parâmetros necessários
      */
     private void abrirTelaTributacao(List<String> departamentosSelecionados) {
+        Stage novaJanela = null;
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/telaTributacao2.fxml"));
             Parent root = loader.load();
 
             TelaTributacaoController controller = loader.getController();
             if (controller == null) {
-                AlertUtil.showAlert("Erro ao carregar controlador da tela de tributação!",
-                        Alert.AlertType.ERROR);
-                return;
+                throw new IllegalStateException("Controlador da tela de tributação não foi inicializado corretamente");
             }
 
             // Passa os parâmetros para a próxima tela
@@ -216,20 +242,53 @@ public class TelaDepartamentoController {
             controller.setDepartamentosSelecionados(departamentosSelecionados);
 
             // Configura e mostra a nova tela
-            Stage stage = new Stage();
-            stage.setTitle("Tributação");
-            stage.setScene(new Scene(root));
-            stage.initStyle(StageStyle.UNDECORATED);
-            stage.show();
+            novaJanela = new Stage();
+            novaJanela.setTitle("Tributação");
+            novaJanela.setScene(new Scene(root));
+            novaJanela.initStyle(StageStyle.UNDECORATED);
+            novaJanela.show();
 
-            // Fecha a tela atual
+            // Fecha a tela atual apenas se a nova tela foi aberta com sucesso
             fecharJanelaAtual(btnProximo);
 
         } catch (IOException e) {
-            AlertUtil.showAlert("Erro ao carregar a tela de tributação: " + e.getMessage(),
+            // Log detalhado para depuração
+            System.err.println("Erro ao carregar arquivo FXML da tela de tributação: " + e.getMessage());
+            e.printStackTrace();
+
+            // Fechar a nova janela se foi criada mas ocorreu erro
+            if (novaJanela != null) {
+                novaJanela.close();
+            }
+
+            // Mensagem amigável para o usuário
+            AlertUtil.showAlert("Não foi possível abrir a próxima tela. Erro de arquivo.",
+                    Alert.AlertType.ERROR);
+        } catch (IllegalStateException e) {
+            // Log detalhado para depuração
+            System.err.println("Erro de inicialização do controlador: " + e.getMessage());
+            e.printStackTrace();
+
+            // Fechar a nova janela se foi criada mas ocorreu erro
+            if (novaJanela != null) {
+                novaJanela.close();
+            }
+
+            // Mensagem amigável para o usuário
+            AlertUtil.showAlert("Erro ao inicializar a tela de tributação.",
                     Alert.AlertType.ERROR);
         } catch (Exception e) {
-            AlertUtil.showAlert("Erro inesperado: " + e.getMessage(),
+            // Log detalhado para depuração
+            System.err.println("Erro inesperado ao abrir tela de tributação: " + e.getMessage());
+            e.printStackTrace();
+
+            // Fechar a nova janela se foi criada mas ocorreu erro
+            if (novaJanela != null) {
+                novaJanela.close();
+            }
+
+            // Mensagem amigável para o usuário
+            AlertUtil.showAlert("Ocorreu um erro ao tentar abrir a próxima tela.",
                     Alert.AlertType.ERROR);
         }
     }
@@ -238,21 +297,45 @@ public class TelaDepartamentoController {
      * Volta para a tela anterior
      */
     private void onAnterior() {
+        Stage novaJanela = null;
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/telaParametros12.fxml"));
             Parent root = loader.load();
 
-            Stage novaJanela = new Stage();
+            novaJanela = new Stage();
             novaJanela.setTitle("Parâmetros");
             novaJanela.setScene(new Scene(root));
             novaJanela.initStyle(StageStyle.UNDECORATED);
             novaJanela.show();
 
-            // Fecha a janela atual
+            // Fecha a janela atual apenas se a nova tela foi aberta com sucesso
             fecharJanelaAtual(btnAnterior);
 
         } catch (IOException e) {
-            AlertUtil.showAlert("Erro ao carregar a tela de parâmetros: " + e.getMessage(),
+            // Log detalhado para depuração
+            System.err.println("Erro ao carregar arquivo FXML da tela de parâmetros: " + e.getMessage());
+            e.printStackTrace();
+
+            // Fechar a nova janela se foi criada mas ocorreu erro
+            if (novaJanela != null) {
+                novaJanela.close();
+            }
+
+            // Mensagem amigável para o usuário
+            AlertUtil.showAlert("Não foi possível retornar à tela anterior. Erro de arquivo.",
+                    Alert.AlertType.ERROR);
+        } catch (Exception e) {
+            // Log detalhado para depuração
+            System.err.println("Erro inesperado ao abrir tela de parâmetros: " + e.getMessage());
+            e.printStackTrace();
+
+            // Fechar a nova janela se foi criada mas ocorreu erro
+            if (novaJanela != null) {
+                novaJanela.close();
+            }
+
+            // Mensagem amigável para o usuário
+            AlertUtil.showAlert("Ocorreu um erro ao tentar retornar à tela anterior.",
                     Alert.AlertType.ERROR);
         }
     }
@@ -261,8 +344,14 @@ public class TelaDepartamentoController {
      * Fecha a janela que contém o botão especificado
      */
     private void fecharJanelaAtual(Button botao) {
-        Stage janelaAtual = (Stage) botao.getScene().getWindow();
-        janelaAtual.close();
+        try {
+            Stage janelaAtual = (Stage) botao.getScene().getWindow();
+            janelaAtual.close();
+        } catch (Exception e) {
+            // Apenas log para depuração, sem alertar o usuário
+            System.err.println("Erro ao fechar janela atual: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -270,8 +359,14 @@ public class TelaDepartamentoController {
      */
     @FXML
     public void closeWindow(ActionEvent actionEvent) {
-        Stage stage = (Stage) ((Node) actionEvent.getSource()).getScene().getWindow();
-        stage.close();
+        try {
+            Stage stage = (Stage) ((Node) actionEvent.getSource()).getScene().getWindow();
+            stage.close();
+        } catch (Exception e) {
+            // Apenas log para depuração, sem alertar o usuário
+            System.err.println("Erro ao fechar janela: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -279,7 +374,15 @@ public class TelaDepartamentoController {
      */
     @FXML
     public void minimizeWindow(ActionEvent actionEvent) {
-        Stage stage = (Stage) ((Node) actionEvent.getSource()).getScene().getWindow();
-        stage.setIconified(true);
+        try {
+            Stage stage = (Stage) ((Node) actionEvent.getSource()).getScene().getWindow();
+            stage.setIconified(true);
+        } catch (Exception e) {
+            // Apenas log para depuração, sem alertar o usuário
+            System.err.println("Erro ao minimizar janela: " + e.getMessage());
+            e.printStackTrace();
+
+            // Este erro não é crítico, então não alertamos o usuário
+        }
     }
 }
