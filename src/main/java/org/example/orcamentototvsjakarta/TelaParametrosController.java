@@ -15,7 +15,6 @@ import org.example.orcamentototvsjakarta.DTO.*;
 import org.example.orcamentototvsjakarta.db.dao.*;
 import org.example.orcamentototvsjakarta.model.ParametrosModel;
 import org.example.orcamentototvsjakarta.util.AlertUtil;
-import org.example.orcamentototvsjakarta.util.JPAUtil;
 
 import java.io.IOException;
 import java.util.Comparator;
@@ -43,6 +42,8 @@ public class TelaParametrosController {
     @FXML private ComboBox<FuncionarioDTO> comboFuncionario;
     @FXML private ComboBox<CobrancaDTO> comboCobranca;
     @FXML private ComboBox<PlanoPagamentoDTO> comboPlanoPagamento;
+    @FXML private TextField txtPercentual;
+
 
     // DAOs
     private final PcfilialDAO pcfilialDAO = new PcfilialDAO();
@@ -610,6 +611,13 @@ public class TelaParametrosController {
             String pracaSelecionada = getSelectedValue(comboPraca);
             String ramoAtividadeSelecionado = getSelectedValue(comboRamoAtividade);
 
+            // No método criarParametrosModel
+            Double percentual = getDoubleValue(txtPercentual, "Percentual");
+            if (percentual == null) {
+                percentual = 0.0; // Valor padrão
+            }
+
+
             // Tratamento seguro para evitar NullPointerException
             Double valorMaxOrcamento = null;
             if (txtValorMaxOrcamento != null && !txtValorMaxOrcamento.getText().trim().isEmpty()) {
@@ -657,6 +665,9 @@ public class TelaParametrosController {
                     qtdeMaxItens,
                     valorMaxOrcamento // Se null, o model assume o valor padrão
             );
+
+            // Incluir na criação do modelo:
+            parametros.setPercentual(percentual);
 
             // Registre o valor após criar o modelo para verificar se foi preservado
             LOGGER.info("Valor máximo no ParametrosModel: " + parametros.getValorMaxOrcamento());

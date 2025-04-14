@@ -16,8 +16,8 @@ public class ParametrosModel {
     private final StringProperty supervisor;
     private final IntegerProperty qtdeMaxItens;
     private BigDecimal valorMaxOrcamento;
-    private String tipoPreco; // "CUSTO" ou "VENDA"
-
+    private final StringProperty tipoPrecoProperty = new SimpleStringProperty("VENDA");
+    private Double percentual = 0.0;
 
     public ParametrosModel(String cliente, String filial, String praca, String ramoAtividade,
                            String planoPagamento, String cobranca, String rca, String supervisor,
@@ -46,9 +46,13 @@ public class ParametrosModel {
         validarParametros();
     }
 
+    public Double getPercentual() {
+        return percentual;
+    }
 
-
-
+    public void setPercentual(Double percentual) {
+        this.percentual = percentual;
+    }
 
     public String getTipoPreco() {
         return tipoPrecoProperty.get();
@@ -61,8 +65,6 @@ public class ParametrosModel {
     public StringProperty tipoPrecoProperty() {
         return tipoPrecoProperty;
     }
-
-
 
     private void validarParametros() {
         Function<String, Integer> extrairNumero = str -> {
@@ -93,9 +95,6 @@ public class ParametrosModel {
     public StringProperty rcaProperty() { return rca; }
     public StringProperty supervisorProperty() { return supervisor; }
     public IntegerProperty qtdeMaxItensProperty() { return qtdeMaxItens; }
-    private final StringProperty tipoPrecoProperty = new SimpleStringProperty("VENDA");
-
-
 
     // Métodos para obter os valores diretamente
     public String getCliente() { return cliente.get(); }

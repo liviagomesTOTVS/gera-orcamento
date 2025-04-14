@@ -15,6 +15,8 @@ public class OrcamentoParams {
     private Integer codatv1;
     private Integer seq;
     private Integer codfilialnf;
+    private Double percentual = 0.0;
+
 
     public Integer getCodfilialnf() {
         return codfilialnf;
@@ -27,6 +29,14 @@ public class OrcamentoParams {
     private Short codusur;
     private BigDecimal valorMaximo;
     private String tipoPreco;
+
+    public Double getPercentual() {
+        return percentual;
+    }
+
+    public void setPercentual(Double percentual) {
+        this.percentual = percentual;
+    }
 
     // Getters e Setters
 

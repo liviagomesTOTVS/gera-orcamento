@@ -10,6 +10,7 @@ import org.example.orcamentototvsjakarta.util.JPAUtil;
 
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -127,7 +128,7 @@ public class OrcamentoService {
                     }
 
                     // Definir preço conforme o tipo
-                    BigDecimal precoVenda = calcularPrecoVenda(params.getTipoPreco(), produto.getPUnit(), produto.getPTabela());
+                    BigDecimal precoVenda = calcularPrecoVenda(params.getTipoPreco(), produto.getPUnit(), produto.getPTabela(), params.getPercentual());
                     BigDecimal valorItem = precoVenda.multiply(BigDecimal.valueOf(produto.getQtEstoque()));
 
                     // Validar valor do item
@@ -216,7 +217,8 @@ public class OrcamentoService {
 
                     // Processar cada item individualmente (um orçamento por item)
                     for (ProdutoDTO produto : produtosParaProcessar) {
-                        BigDecimal precoVenda = calcularPrecoVenda(params.getTipoPreco(), produto.getPUnit(), produto.getPTabela());
+                        BigDecimal precoVenda = calcularPrecoVenda(params.getTipoPreco(), produto.getPUnit(), produto.getPTabela(), params.getPercentual());
+
 
                         currentNumOrca = obterProximoNumeroOrcamento(em, params.getCodusur());
                         inserirCabecalho(em, currentNumOrca, params, cliente);
@@ -441,7 +443,7 @@ public class OrcamentoService {
 
                     if (qtEstoque <= 0) continue;
 
-                    BigDecimal precoVenda = calcularPrecoVenda(tipoPrecoSelecionado, pUnit, pTabela);
+                    BigDecimal precoVenda = calcularPrecoVenda(params.getTipoPreco(), produto.getPUnit(), produto.getPTabela(), params.getPercentual());
                     BigDecimal valorItem = precoVenda.multiply(BigDecimal.valueOf(qtEstoque));
 
                     if (!itemDentroDoOrcamento(valorItem, valorTotalOrcamento, valorMaxOrcamento)) continue;
@@ -733,15 +735,26 @@ public class OrcamentoService {
     /**
      * Calcula o preço de venda com base no tipo de preço
      */
-    private BigDecimal calcularPrecoVenda(String tipoPreco, BigDecimal pUnit, BigDecimal pTabela) {
+    private BigDecimal calcularPrecoVenda(String tipoPreco, BigDecimal pUnit, BigDecimal pTabela, Double percentual) {
+        BigDecimal result;
+
         if ("C".equalsIgnoreCase(tipoPreco)) {
-            return pUnit != null ? pUnit : BigDecimal.ZERO;
-        } else if ("V".equalsIgnoreCase(tipoPreco)) {
-            return (pTabela != null && pTabela.compareTo(BigDecimal.ZERO) > 0) ? pTabela : pUnit;
+            // Para preço de custo, aplicar acréscimo
+            result = pUnit != null ? pUnit : BigDecimal.ZERO;
+            if (percentual != null && percentual > 0) {
+                BigDecimal fator = BigDecimal.ONE.add(BigDecimal.valueOf(percentual).divide(BigDecimal.valueOf(100), 6, RoundingMode.HALF_UP));
+                result = result.multiply(fator).setScale(2, RoundingMode.HALF_UP);
+            }
         } else {
-            // Para outros tipos (T ou default), mesmo comportamento que V
-            return (pTabela != null && pTabela.compareTo(BigDecimal.ZERO) > 0) ? pTabela : pUnit;
+            // Para preço de venda (ou outro tipo), aplicar desconto
+            result = (pTabela != null && pTabela.compareTo(BigDecimal.ZERO) > 0) ? pTabela : pUnit;
+            if (percentual != null && percentual > 0) {
+                BigDecimal fator = BigDecimal.ONE.subtract(BigDecimal.valueOf(percentual).divide(BigDecimal.valueOf(100), 6, RoundingMode.HALF_UP));
+                result = result.multiply(fator).setScale(2, RoundingMode.HALF_UP);
+            }
         }
+
+        return result;
     }
 
     /**
