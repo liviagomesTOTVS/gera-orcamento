@@ -77,7 +77,10 @@ public class TelaOrcamentosController {
         colValorTotal.setCellValueFactory(new PropertyValueFactory<>("vltotal"));
         colCliente.setCellValueFactory(new PropertyValueFactory<>("codcli"));
         colUsuario.setCellValueFactory(new PropertyValueFactory<>("codusur"));
-        colDesconto.setCellValueFactory(new PropertyValueFactory<>("vldesconto"));
+        colDesconto.setCellValueFactory(cellData -> {
+            OrcamentoModel orcamento = cellData.getValue();
+            return orcamento.vldescontoProperty();
+        });
 
         // Formatação de células
         configurarFormatacoesTabela();
@@ -101,7 +104,14 @@ public class TelaOrcamentosController {
             @Override
             protected void updateItem(BigDecimal value, boolean empty) {
                 super.updateItem(value, empty);
-                setText((empty || value == null) ? null : currencyFormat.format(value));
+
+                if (empty || value == null) {
+                    setText(null);
+                } else {
+                    // Log para diagnóstico
+                    LOGGER.fine("Formatando valor de desconto: " + value + " para célula na linha " + getIndex());
+                    setText(currencyFormat.format(value));
+                }
             }
         });
 
@@ -153,36 +163,32 @@ public class TelaOrcamentosController {
 
             orcamentos.clear();
             for (Pcorcavendac o : resultados) {
-                orcamentos.add(new OrcamentoModel(
+                // Adicionar logs para diagnóstico
+                //LOGGER.info("Carregando orçamento #" + o.getId() + ":");
+                //LOGGER.info("- Data: " + o.getData());
+                //LOGGER.info("- Valor Total: " + o.getVltotal());
+                //LOGGER.info("- Cliente: " + o.getCodcli());
+                //LOGGER.info("- Usuário: " + o.getCodusur());
+                //LOGGER.info("- Desconto: " + o.getVldesconto());
+
+                // Criar o modelo com os valores do banco
+                OrcamentoModel orcamento = new OrcamentoModel(
                         o.getId(), o.getData(), o.getVltotal(),
-                        o.getCodcli(), o.getCodusur(), o.getVldesconto()));
+                        o.getCodcli(), o.getCodusur(), o.getVldesconto());
+
+                // Verificar se o valor de desconto foi corretamente atribuído no modelo
+                //LOGGER.info("- Desconto atribuído ao modelo: " + orcamento.getVldesconto());
+
+                orcamentos.add(orcamento);
             }
 
-            LOGGER.info("Carregados " + orcamentos.size() + " orçamentos");
-        } catch (IllegalStateException e) {
-            // Problema com o EntityManager/conexão ao banco
-            LOGGER.log(Level.SEVERE, "Falha na conexão com o banco de dados", e);
-            // Mensagem amigável para o usuário
-            AlertUtil.showAlert("Não foi possível conectar ao banco de dados. Verifique sua conexão e tente novamente.",
-                    Alert.AlertType.ERROR);
-        } catch (jakarta.persistence.PersistenceException e) {
-            // Problemas específicos de persistência
-            LOGGER.log(Level.SEVERE, "Erro de persistência ao carregar orçamentos", e);
-            AlertUtil.showAlert("Ocorreu um erro ao acessar os dados de orçamentos. Por favor, tente novamente mais tarde.",
-                    Alert.AlertType.ERROR);
+            //LOGGER.info("Carregados " + orcamentos.size() + " orçamentos");
         } catch (Exception ex) {
-            // Erro genérico
-            LOGGER.log(Level.SEVERE, "Erro inesperado ao carregar orçamentos", ex);
-            AlertUtil.showAlert("Não foi possível carregar a lista de orçamentos.",
-                    Alert.AlertType.ERROR);
+            // Tratamento de exceções aqui...
+            //LOGGER.log(Level.SEVERE, "Erro ao carregar orçamentos", ex);
         } finally {
             if (em != null) {
-                try {
-                    em.close();
-                } catch (Exception e) {
-                    LOGGER.log(Level.WARNING, "Erro ao fechar EntityManager", e);
-                    // Não exibimos isso para o usuário, só registramos no log
-                }
+                em.close();
             }
         }
     }
@@ -195,7 +201,7 @@ public class TelaOrcamentosController {
      */
     private void abrirTelaItensOrcamento(Long orcamentoId) {
         if (orcamentoId == null) {
-            LOGGER.warning("Tentativa de abrir tela de itens com ID nulo");
+            //LOGGER.warning("Tentativa de abrir tela de itens com ID nulo");
             return;
         }
 
@@ -227,10 +233,10 @@ public class TelaOrcamentosController {
             // Definir o ID do orçamento após mostrar a janela
             itensController.setOrcamentoId(orcamentoId);
 
-            LOGGER.info("Aberta tela de itens para o orçamento " + orcamentoId);
+            //LOGGER.info("Aberta tela de itens para o orçamento " + orcamentoId);
         } catch (IOException e) {
             // Erro ao carregar o arquivo FXML
-            LOGGER.log(Level.SEVERE, "Erro ao carregar tela de itens do orçamento", e);
+            //LOGGER.log(Level.SEVERE, "Erro ao carregar tela de itens do orçamento", e);
             AlertUtil.showAlert("Não foi possível abrir a tela de itens do orçamento. Arquivo de layout não encontrado.",
                     Alert.AlertType.ERROR);
 
@@ -240,7 +246,7 @@ public class TelaOrcamentosController {
             }
         } catch (IllegalStateException e) {
             // Erro específico do controlador
-            LOGGER.log(Level.SEVERE, "Erro de inicialização da tela de itens", e);
+            //LOGGER.log(Level.SEVERE, "Erro de inicialização da tela de itens", e);
             AlertUtil.showAlert("Erro ao inicializar a tela de itens do orçamento.",
                     Alert.AlertType.ERROR);
 
@@ -249,7 +255,7 @@ public class TelaOrcamentosController {
             }
         } catch (Exception e) {
             // Erro genérico
-            LOGGER.log(Level.SEVERE, "Erro inesperado ao abrir tela de itens", e);
+            //LOGGER.log(Level.SEVERE, "Erro inesperado ao abrir tela de itens", e);
             AlertUtil.showAlert("Ocorreu um erro ao abrir os detalhes do orçamento.",
                     Alert.AlertType.ERROR);
 
@@ -285,26 +291,20 @@ public class TelaOrcamentosController {
             em = JPAUtil.getEntityManager();
 
             // Converter string de IDs para lista de Long
-            List<Long> ids = new ArrayList<>();
-            try {
-                ids = Arrays.stream(numorcasGerados.split(","))
-                        .map(String::trim)
-                        .filter(s -> !s.isEmpty())
-                        .map(Long::parseLong)
-                        .collect(Collectors.toList());
-            } catch (NumberFormatException e) {
-                LOGGER.log(Level.WARNING, "Erro ao converter IDs de orçamentos: " + numorcasGerados, e);
-                throw new IllegalArgumentException("Os números de orçamento informados não estão em um formato válido.");
-            }
+            List<Long> ids = Arrays.stream(numorcasGerados.split(","))
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .map(Long::parseLong)
+                    .collect(Collectors.toList());
 
             if (ids.isEmpty()) {
-                LOGGER.warning("Lista de IDs de orçamentos está vazia após parse");
+                //LOGGER.warning("Lista de IDs de orçamentos está vazia após parse");
                 AlertUtil.showAlert("Nenhum orçamento válido foi gerado.",
                         Alert.AlertType.WARNING);
                 return;
             }
 
-            LOGGER.info("Carregando orçamentos com IDs: " + ids);
+            //LOGGER.info("Carregando orçamentos com IDs: " + ids);
 
             // Buscar orçamentos pelo ID
             List<Pcorcavendac> resultados = em.createQuery(
@@ -316,9 +316,26 @@ public class TelaOrcamentosController {
             // Atualizar a tabela
             orcamentos.clear();
             for (Pcorcavendac o : resultados) {
-                orcamentos.add(new OrcamentoModel(
+                // Adicionar logs para diagnóstico
+                //LOGGER.info("Carregando orçamento específico #" + o.getId() + ":");
+                //LOGGER.info("- Valor Total: " + o.getVltotal());
+                //LOGGER.info("- Desconto: " + o.getVldesconto());
+
+                // Verificar valores nulos
+                if (o.getVldesconto() == null) {
+                    LOGGER.warning("Desconto NULO para orçamento #" + o.getId());
+                    // Usar zero como valor padrão em caso de nulo
+                    o.setVldesconto(BigDecimal.ZERO);
+                }
+
+                OrcamentoModel orcamento = new OrcamentoModel(
                         o.getId(), o.getData(), o.getVltotal(),
-                        o.getCodcli(), o.getCodusur(), o.getVldesconto()));
+                        o.getCodcli(), o.getCodusur(), o.getVldesconto());
+
+                // Verificar se o valor de desconto foi corretamente atribuído no modelo
+                //LOGGER.info("- Desconto atribuído ao modelo: " + orcamento.getVldesconto());
+
+                orcamentos.add(orcamento);
             }
 
             LOGGER.info("Carregados " + orcamentos.size() + " orçamentos específicos");
@@ -327,28 +344,12 @@ public class TelaOrcamentosController {
                 AlertUtil.showAlert("Os orçamentos foram gerados, mas não puderam ser visualizados neste momento.",
                         Alert.AlertType.WARNING);
             }
-        } catch (IllegalArgumentException e) {
-            // Erro já tratado na conversão de IDs
-            LOGGER.log(Level.WARNING, "Erro de formato nos IDs", e);
-            AlertUtil.showAlert(e.getMessage(), Alert.AlertType.ERROR);
-        } catch (jakarta.persistence.PersistenceException e) {
-            // Problemas específicos de persistência
-            LOGGER.log(Level.SEVERE, "Erro de persistência ao carregar orçamentos específicos", e);
-            AlertUtil.showAlert("Não foi possível acessar os orçamentos gerados no banco de dados.",
-                    Alert.AlertType.ERROR);
         } catch (Exception e) {
-            // Erro genérico
-            LOGGER.log(Level.SEVERE, "Erro inesperado ao carregar orçamentos específicos", e);
-            AlertUtil.showAlert("Ocorreu um erro ao carregar os orçamentos gerados.",
-                    Alert.AlertType.ERROR);
+            // Tratamento de exceções aqui...
+            LOGGER.log(Level.SEVERE, "Erro ao carregar orçamentos específicos", e);
         } finally {
             if (em != null) {
-                try {
-                    em.close();
-                } catch (Exception e) {
-                    LOGGER.log(Level.WARNING, "Erro ao fechar EntityManager", e);
-                    // Não exibimos isso para o usuário
-                }
+                em.close();
             }
         }
     }

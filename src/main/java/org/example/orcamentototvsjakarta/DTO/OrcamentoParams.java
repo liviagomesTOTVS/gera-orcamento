@@ -1,150 +1,65 @@
 package org.example.orcamentototvsjakarta.DTO;
 
 import java.math.BigDecimal;
-import java.util.logging.Logger;
 
+/**
+ * Classe DTO que contém todos os parâmetros necessários para gerar um orçamento
+ */
 public class OrcamentoParams {
-
     private Integer codcli;
-    private Integer rca;
-    private Integer codfilial;
-    private Integer codpraca;
-    private String cobranca;   // Alterado para String
-    private Integer supervisor;
-    private Integer planoPagamento;
-    private Integer codatv1;
-    private Integer seq;
-    private Integer codfilialnf;
-    private Double percentual = 0.0;
-
-
-    public Integer getCodfilialnf() {
-        return codfilialnf;
-    }
-
-    public void setCodfilialnf(Integer codfilialnf) {
-        this.codfilialnf = codfilialnf;
-    }
-
     private Short codusur;
+    private Integer codfilial;
+    private Integer codfilialnf;
+    private String codcob;
+    private Short codsupervisor;
+    private Integer codplpag;
+    private Integer codatv1;
+    private String numprevenda;
     private BigDecimal valorMaximo;
-    private String tipoPreco;
+    private String tipoPreco = "VENDA"; // Valor padrão
+    private Double percentual = 0.0;    // Valor padrão
+    private boolean boletoSelecionado;
+    private boolean pixSelecionado;
+    private boolean cartaoSelecionado;
 
-    public Double getPercentual() {
-        return percentual;
+    // Construtor completo
+    public OrcamentoParams(Integer codcli, Short codusur, Integer codfilial, Integer codfilialnf,
+                           String codcob, Short codsupervisor, Integer codplpag, Integer codatv1,
+                           String numprevenda, BigDecimal valorMaximo, String tipoPreco, Double percentual,
+                           boolean boletoSelecionado, boolean pixSelecionado, boolean cartaoSelecionado) {
+        this.codcli = codcli;
+        this.codusur = codusur;
+        this.codfilial = codfilial;
+        this.codfilialnf = codfilialnf;
+        this.codcob = codcob;
+        this.codsupervisor = codsupervisor;
+        this.codplpag = codplpag;
+        this.codatv1 = codatv1;
+        this.numprevenda = numprevenda;
+        this.valorMaximo = valorMaximo;
+        if (tipoPreco != null) this.tipoPreco = tipoPreco;
+        if (percentual != null) this.percentual = percentual;
+        this.boletoSelecionado = boletoSelecionado;
+        this.pixSelecionado = pixSelecionado;
+        this.cartaoSelecionado = cartaoSelecionado;
+
+        // Log para diagnóstico
+        System.out.println("OrcamentoParams criado com valorMaximo: " + this.valorMaximo);
+        System.out.println("OrcamentoParams criado com percentual: " + this.percentual);
+        System.out.println("OrcamentoParams criado com tipoPreco: " + this.tipoPreco);
     }
 
-    public void setPercentual(Double percentual) {
-        this.percentual = percentual;
+    public OrcamentoParams() {
+
     }
 
     // Getters e Setters
-
     public Integer getCodcli() {
         return codcli;
     }
 
     public void setCodcli(Integer codcli) {
         this.codcli = codcli;
-    }
-
-    public BigDecimal getValorMaximo() {
-        // Garantir que nunca retorne null
-        return valorMaximo != null ? valorMaximo : BigDecimal.valueOf(10000);
-    }
-
-    public void setValorMaximo(BigDecimal valorMaximo) {
-        if (valorMaximo != null && valorMaximo.compareTo(BigDecimal.ZERO) > 0) {
-            this.valorMaximo = valorMaximo;
-            // Log para depuração
-            Logger.getLogger(OrcamentoParams.class.getName())
-                    .info("Valor máximo definido (BigDecimal): " + valorMaximo);
-        } else {
-            // Usar valor padrão se nulo ou inválido
-            this.valorMaximo = BigDecimal.valueOf(10000);
-            Logger.getLogger(OrcamentoParams.class.getName())
-                    .warning("Valor máximo inválido, usando padrão: 10000");
-        }
-    }
-
-    // Sobrecarga para Double
-    public void setValorMaximo(Double valorMaximo) {
-        if (valorMaximo != null && valorMaximo > 0) {
-            this.valorMaximo = BigDecimal.valueOf(valorMaximo);
-            // Log para depuração
-            Logger.getLogger(OrcamentoParams.class.getName())
-                    .info("Valor máximo definido (Double): " + valorMaximo);
-        } else {
-            // Usar valor padrão se nulo ou inválido
-            this.valorMaximo = BigDecimal.valueOf(10000);
-            Logger.getLogger(OrcamentoParams.class.getName())
-                    .warning("Valor máximo (Double) inválido, usando padrão: 10000");
-        }
-    }
-
-
-    public Integer getRca() {
-        return rca;
-    }
-
-    public void setRca(Integer rca) {
-        this.rca = rca;
-    }
-
-    public Integer getCodfilial() {
-        return codfilial;
-    }
-
-    public void setCodfilial(Integer codfilial) {
-        this.codfilial = codfilial;
-    }
-
-    public Integer getCodpraca() {
-        return codpraca;
-    }
-
-    public void setCodpraca(Integer codpraca) {
-        this.codpraca = codpraca;
-    }
-
-    public String getCobranca() {   // Alterado para String
-        return cobranca;
-    }
-
-    public void setCobranca(String cobranca) {   // Alterado para String
-        this.cobranca = cobranca;
-    }
-
-    public Integer getSupervisor() {
-        return supervisor;
-    }
-
-    public void setSupervisor(Integer supervisor) {
-        this.supervisor = supervisor;
-    }
-
-    public Integer getPlanoPagamento() {
-        return planoPagamento;
-    }
-
-    public void setPlanoPagamento(Integer planoPagamento) {
-        this.planoPagamento = planoPagamento;
-    }
-
-    public Integer getCodatv1() {
-        return codatv1;
-    }
-
-    public void setCodatv1(Integer codatv1) {
-        this.codatv1 = codatv1;
-    }
-
-    public Integer getSeq() {
-        return seq;
-    }
-
-    public void setSeq(Integer seq) {
-        this.seq = seq;
     }
 
     public Short getCodusur() {
@@ -155,22 +70,69 @@ public class OrcamentoParams {
         this.codusur = codusur;
     }
 
-    public String getCodcob() {   // Alterado para String
-        return cobranca;
+    public Integer getCodfilial() {
+        return codfilial;
     }
 
-    public Integer getCodsupervisor() {
-        return supervisor;
+    public void setCodfilial(Integer codfilial) {
+        this.codfilial = codfilial;
+    }
+
+    public Integer getCodfilialnf() {
+        return codfilialnf;
+    }
+
+    public void setCodfilialnf(Integer codfilialnf) {
+        this.codfilialnf = codfilialnf;
+    }
+
+    public String getCodcob() {
+        return codcob;
+    }
+
+    public void setCodcob(String codcob) {
+        this.codcob = codcob;
+    }
+
+    public Short getCodsupervisor() {
+        return codsupervisor;
+    }
+
+    public void setCodsupervisor(Short codsupervisor) {
+        this.codsupervisor = codsupervisor;
     }
 
     public Integer getCodplpag() {
-        return planoPagamento;
+        return codplpag;
     }
 
-    public Integer getNumprevenda() {
-        return seq;
+    public void setCodplpag(Integer codplpag) {
+        this.codplpag = codplpag;
     }
 
+    public Integer getCodatv1() {
+        return codatv1;
+    }
+
+    public void setCodatv1(Integer codatv1) {
+        this.codatv1 = codatv1;
+    }
+
+    public String getNumprevenda() {
+        return numprevenda;
+    }
+
+    public void setNumprevenda(String numprevenda) {
+        this.numprevenda = numprevenda;
+    }
+
+    public BigDecimal getValorMaximo() {
+        return valorMaximo;
+    }
+
+    public void setValorMaximo(BigDecimal valorMaximo) {
+        this.valorMaximo = valorMaximo;
+    }
 
     public String getTipoPreco() {
         return tipoPreco;
@@ -180,26 +142,49 @@ public class OrcamentoParams {
         this.tipoPreco = tipoPreco;
     }
 
-    public void setCodcob(String cobranca) {
-        this.cobranca = cobranca;
+    public Double getPercentual() {
+        return percentual;
     }
 
-    public void setCodplpag(short planoPagamento) {
-        this.planoPagamento = (int) planoPagamento;
+    public void setPercentual(Double percentual) {
+        this.percentual = percentual;
     }
 
-    public void setCodsupervisor(short supervisor) {
-        this.supervisor = (int) supervisor;
+    public boolean isBoletoSelecionado() {
+        return boletoSelecionado;
     }
 
-    public void setNumprevenda(String number) {
-        try {
-            this.codatv1 = Integer.parseInt(number);
-        } catch (NumberFormatException e) {
-            // Se não for possível converter para inteiro, define como null ou 0
-            this.codatv1 = 0;
-        }
+    public void setBoletoSelecionado(boolean boletoSelecionado) {
+        this.boletoSelecionado = boletoSelecionado;
     }
 
+    public boolean isPixSelecionado() {
+        return pixSelecionado;
+    }
 
+    public void setPixSelecionado(boolean pixSelecionado) {
+        this.pixSelecionado = pixSelecionado;
+    }
+
+    public boolean isCartaoSelecionado() {
+        return cartaoSelecionado;
+    }
+
+    public void setCartaoSelecionado(boolean cartaoSelecionado) {
+        this.cartaoSelecionado = cartaoSelecionado;
+    }
+
+    public boolean temFiltroTipoVendaAtivo() {
+        // Adicionar log aqui
+        System.out.println("temFiltroTipoVendaAtivo - Boleto: " + boletoSelecionado +
+                ", Pix: " + pixSelecionado +
+                ", Cartão: " + cartaoSelecionado);
+
+        // Se todos estiverem ativos ou todos inativos, não há filtro específico
+        boolean resultado = !((boletoSelecionado && pixSelecionado && cartaoSelecionado) ||
+                (!boletoSelecionado && !pixSelecionado && !cartaoSelecionado));
+
+        System.out.println("temFiltroTipoVendaAtivo resultado: " + resultado);
+        return resultado;
+    }
 }

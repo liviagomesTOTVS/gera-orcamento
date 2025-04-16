@@ -17,6 +17,7 @@ import org.example.orcamentototvsjakarta.model.ParametrosModel;
 import org.example.orcamentototvsjakarta.util.AlertUtil;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -43,6 +44,8 @@ public class TelaParametrosController {
     @FXML private ComboBox<CobrancaDTO> comboCobranca;
     @FXML private ComboBox<PlanoPagamentoDTO> comboPlanoPagamento;
     @FXML private TextField txtPercentual;
+    @FXML private CheckBox cbBoleto, cbPix, cbCartao;
+
 
 
     // DAOs
@@ -85,6 +88,54 @@ public class TelaParametrosController {
         configurarBotoes();
     }
 
+    private void configurarListenersTipoVenda() {
+        // Os checkboxes podem ser independentes, então não precisamos
+        // de exclusão mútua como os outros checkboxes
+        cbBoleto.setOnAction(event -> atualizarFiltroTipoVenda());
+        cbPix.setOnAction(event -> atualizarFiltroTipoVenda());
+        cbCartao.setOnAction(event -> atualizarFiltroTipoVenda());
+    }
+
+    private void atualizarFiltroTipoVenda() {
+        // Este método será chamado sempre que houver alteração na seleção dos tipos de venda
+        // A lógica real será aplicada ao consultar os produtos
+        LOGGER.info("Filtro de tipo de venda atualizado: Boleto=" + cbBoleto.isSelected() +
+                ", Pix=" + cbPix.isSelected() + ", Cartão=" + cbCartao.isSelected());
+    }
+
+    private boolean temFiltroTipoVendaAtivo() {
+        return cbBoleto.isSelected() || cbPix.isSelected() || cbCartao.isSelected();
+    }
+
+    private String montarFiltroTipoVendaSQL() {
+        if (!temFiltroTipoVendaAtivo()) {
+            // Se nenhum filtro estiver ativo, retornar string vazia (sem filtro)
+            return "";
+        }
+
+        StringBuilder filtroSQL = new StringBuilder();
+        filtroSQL.append(" AND EXISTS (SELECT 1 FROM PCNFSAID nf JOIN PCCOB cob ON nf.CODCOB = cob.CODCOB WHERE nf.CODPROD = p.CODPROD AND (");
+
+        List<String> condicoes = new ArrayList<>();
+
+        if (cbBoleto.isSelected()) {
+            condicoes.add("cob.BOLETO = 'S'");
+        }
+
+        if (cbPix.isSelected()) {
+            condicoes.add("(cob.BOLEPIX = 'S' OR cob.CARTEIRAPIX = 'S')");
+        }
+
+        if (cbCartao.isSelected()) {
+            condicoes.add("cob.CARTAO = 'S'");
+        }
+
+        filtroSQL.append(String.join(" OR ", condicoes));
+        filtroSQL.append("))");
+
+        return filtroSQL.toString();
+    }
+
     /**
      * Configura os listeners dos botões
      */
@@ -102,6 +153,7 @@ public class TelaParametrosController {
             if (cbPrecoCusto.isSelected()) {
                 cbPrecoVenda.setSelected(false);
             }
+            configurarListenersTipoVenda();
         });
 
         cbPrecoVenda.setOnAction(event -> {
@@ -109,6 +161,10 @@ public class TelaParametrosController {
                 cbPrecoCusto.setSelected(false);
             }
         });
+
+        cbBoleto.setOnAction(event -> atualizarFiltroTipoVenda());
+        cbPix.setOnAction(event -> atualizarFiltroTipoVenda());
+        cbCartao.setOnAction(event -> atualizarFiltroTipoVenda());
     }
 
     private void configurarListenersCamposTexto() {
@@ -663,11 +719,17 @@ public class TelaParametrosController {
                     rcaSelecionado,
                     supervisorSelecionado,
                     qtdeMaxItens,
-                    valorMaxOrcamento // Se null, o model assume o valor padrão
+                    valorMaxOrcamento,
+                    percentual
             );
 
             // Incluir na criação do modelo:
             parametros.setPercentual(percentual);
+
+
+            parametros.setBoletoSelecionado(cbBoleto.isSelected());
+            parametros.setPixSelecionado(cbPix.isSelected());
+            parametros.setCartaoSelecionado(cbCartao.isSelected());
 
             // Registre o valor após criar o modelo para verificar se foi preservado
             LOGGER.info("Valor máximo no ParametrosModel: " + parametros.getValorMaxOrcamento());

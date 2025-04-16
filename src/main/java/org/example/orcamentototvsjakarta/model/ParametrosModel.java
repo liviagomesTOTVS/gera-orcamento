@@ -1,7 +1,6 @@
 package org.example.orcamentototvsjakarta.model;
 
 import javafx.beans.property.*;
-
 import java.math.BigDecimal;
 import java.util.function.Function;
 
@@ -18,12 +17,16 @@ public class ParametrosModel {
     private BigDecimal valorMaxOrcamento;
     private final StringProperty tipoPrecoProperty = new SimpleStringProperty("VENDA");
     private Double percentual = 0.0;
+    private boolean boletoSelecionado;
+    private boolean pixSelecionado;
+    private boolean cartaoSelecionado;
+
 
     public ParametrosModel(String cliente, String filial, String praca, String ramoAtividade,
                            String planoPagamento, String cobranca, String rca, String supervisor,
-                           Integer qtdeMaxItens, Double valorMaxOrcamento) {
-        // [log para depuração]
+                           Integer qtdeMaxItens, Double valorMaxOrcamento, Double percentual) {
         System.out.println("ParametrosModel recebeu valorMaxOrcamento: " + valorMaxOrcamento);
+        System.out.println("ParametrosModel recebeu percentual: " + percentual);
 
         this.cliente = new SimpleStringProperty(cliente);
         this.filial = new SimpleStringProperty(filial);
@@ -35,15 +38,65 @@ public class ParametrosModel {
         this.supervisor = new SimpleStringProperty(supervisor);
         this.qtdeMaxItens = new SimpleIntegerProperty(qtdeMaxItens != null ? qtdeMaxItens : 10);
 
-        // Correto:
         this.valorMaxOrcamento = valorMaxOrcamento != null ?
                 BigDecimal.valueOf(valorMaxOrcamento) :
                 BigDecimal.valueOf(10000);
 
-        // [outro log para confirmar]
+        // Adiciona a inicialização do percentual
+        this.percentual = percentual != null ? percentual : 0.0;
+
         System.out.println("ParametrosModel definiu valorMaxOrcamento: " + this.valorMaxOrcamento);
+        System.out.println("ParametrosModel definiu percentual: " + this.percentual);
 
         validarParametros();
+    }
+
+
+    // Método para calcular o valor do desconto baseado no percentual
+    public double calcularValorDesconto(double valorBase) {
+        if (percentual == null || percentual == 0.0) {
+            return 0.0;
+        }
+
+        double percentualDecimal = percentual / 100.0;
+
+        if ("C".equalsIgnoreCase(tipoPrecoProperty.get())) {
+            // Para preço de custo (acréscimo)
+            return valorBase * percentualDecimal;
+        } else {
+            // Para preço de venda (desconto)
+            return valorBase * percentualDecimal;
+        }
+    }
+
+    // O resto dos métodos permanece igual
+
+    public boolean isBoletoSelecionado() {
+        return boletoSelecionado;
+    }
+
+    public void setBoletoSelecionado(boolean boletoSelecionado) {
+        this.boletoSelecionado = boletoSelecionado;
+    }
+
+    public boolean isPixSelecionado() {
+        return pixSelecionado;
+    }
+
+    public void setPixSelecionado(boolean pixSelecionado) {
+        this.pixSelecionado = pixSelecionado;
+    }
+
+    public boolean isCartaoSelecionado() {
+        return cartaoSelecionado;
+    }
+
+    public void setCartaoSelecionado(boolean cartaoSelecionado) {
+        this.cartaoSelecionado = cartaoSelecionado;
+    }
+
+    public boolean temFiltroTipoVendaAtivo() {
+        return boletoSelecionado || pixSelecionado || cartaoSelecionado;
     }
 
     public Double getPercentual() {
@@ -116,5 +169,9 @@ public class ParametrosModel {
 
     public BigDecimal getValorMaxOrcamento() {
         return valorMaxOrcamento;
+    }
+
+    public void setValorMaxOrcamento(BigDecimal valorMaxOrcamento) {
+        this.valorMaxOrcamento = valorMaxOrcamento;
     }
 }

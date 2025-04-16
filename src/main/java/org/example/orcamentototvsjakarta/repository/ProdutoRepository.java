@@ -2,6 +2,7 @@ package org.example.orcamentototvsjakarta.repository;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Query;
+import org.example.orcamentototvsjakarta.DTO.OrcamentoParams;
 import org.example.orcamentototvsjakarta.DTO.ProdutoDTO;
 
 import java.math.BigDecimal;
@@ -29,9 +30,13 @@ public class ProdutoRepository {
             List<Short> codsts,
             Integer limiteProdutos,
             int offset,
-            int pageSize) {
+            int pageSize,
+            OrcamentoParams parametros) {  // Adicionar parâmetro OrcamentoParams
 
         try {
+            LOGGER.info("DENTRO DE buscarProdutosPaginados");
+            System.out.println("parametros é null? " + (parametros == null));
+
             // Abordagem compatível com Oracle para paginação
             StringBuilder sql = new StringBuilder();
             if (offset > 0 || pageSize > 0) {
@@ -53,6 +58,54 @@ public class ProdutoRepository {
             sql.append("        AND PCCLIENT.CODCLI = ?3 ");
             sql.append("        AND PCPLPAG.CODPLPAG = ?4 ");
             sql.append("        AND PCEST.CODFILIAL = ?5 ");
+
+            // Aplicar filtro de tipo de venda se necessário
+            if (parametros != null && parametros.temFiltroTipoVendaAtivo()) {
+                // Não aplicar filtro se todos estiverem selecionados ou todos desativados
+                boolean boleto = parametros.isBoletoSelecionado();
+                boolean pix = parametros.isPixSelecionado();
+                boolean cartao = parametros.isCartaoSelecionado();
+                LOGGER.info("Estado dos filtros: Boleto=" + boleto + ", Pix=" + pix + ", Cartão=" + cartao);
+
+                if (!((boleto && pix && cartao) || (!boleto && !pix && !cartao))) {
+                    sql.append(" AND PCPRODUT.CODPROD IN (");
+
+                    List<String> subconsultas = new ArrayList<>();
+
+                    if (boleto) {
+                        LOGGER.info("Adicionando filtro para BOLETO");
+                        subconsultas.add("SELECT DISTINCT p2.codprod FROM pcnfsaid v " +
+                                "INNER JOIN pccob c ON v.codcob = c.codcob " +
+                                "INNER JOIN pcmov m ON m.numnota = v.numnota " +
+                                "INNER JOIN pcprodut p2 ON p2.codprod = m.codprod " +
+                                "WHERE c.boleto = 'S'");
+                    }
+
+                    if (pix) {
+                        LOGGER.info("Adicionando filtro para PIX");
+                        subconsultas.add("SELECT DISTINCT p2.codprod FROM pcnfsaid v " +
+                                "INNER JOIN pccob c ON v.codcob = c.codcob " +
+                                "INNER JOIN pcmov m ON m.numnota = v.numnota " +
+                                "INNER JOIN pcprodut p2 ON p2.codprod = m.codprod " +
+                                "WHERE c.carteirapix = 'S' OR c.bolepix = 'S'");
+                    }
+
+                    if (cartao) {
+                        LOGGER.info("Adicionando filtro para CARTÃO");
+                        subconsultas.add("SELECT DISTINCT p2.codprod FROM pcnfsaid v " +
+                                "INNER JOIN pccob c ON v.codcob = c.codcob " +
+                                "INNER JOIN pcmov m ON m.numnota = v.numnota " +
+                                "INNER JOIN pcprodut p2 ON p2.codprod = m.codprod " +
+                                "WHERE c.cartao = 'S'");
+                    }
+
+                    sql.append(String.join(" UNION ", subconsultas));
+                    sql.append(")");
+                }
+            } else {
+                LOGGER.info("Nenhum filtro de tipo de venda ativo ou parâmetros nulos");
+            }
+
             sql.append("        ORDER BY DBMS_RANDOM.RANDOM"); // ORDER BY aqui dentro da subquery interna
             sql.append("    )");
 
@@ -64,6 +117,9 @@ public class ProdutoRepository {
                 // Fechando a estrutura sem paginação
                 sql.append("  WHERE ROWNUM <= ?6");
             }
+
+            // Log da consulta SQL final para depuração
+            LOGGER.info("SQL construído: " + sql.toString());
 
             // Criar e configurar a query
             Query query = em.createNativeQuery(sql.toString());

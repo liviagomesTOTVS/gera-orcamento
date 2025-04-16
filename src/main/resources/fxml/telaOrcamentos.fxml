@@ -22,7 +22,7 @@
                 <TableColumn fx:id="colValorTotal" prefWidth="150" style="-fx-font-family: arial;" text="Valor Total" />
                 <TableColumn fx:id="colCliente" prefWidth="100" style="-fx-font-family: arial;" text="Cliente" />
                 <TableColumn fx:id="colUsuario" prefWidth="100" style="-fx-font-family: arial;" text="Usuário" />
-                <TableColumn fx:id="colDesconto" prefWidth="100" style="-fx-font-family: arial;" text="Desconto" />
+                <TableColumn fx:id="colDesconto" prefWidth="100" style="-fx-font-family: arial;" text="Desconto/Acréscimo" />
             </columns>
          <padding>
             <Insets bottom="15.0" />

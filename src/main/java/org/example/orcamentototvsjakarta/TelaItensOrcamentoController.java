@@ -43,8 +43,19 @@ public class TelaItensOrcamentoController {
 
 
     // Formatadores
-    private final NumberFormat currencyFormat = NumberFormat.getCurrencyInstance(new Locale("pt", "BR"));
-    private final NumberFormat quantityFormat = NumberFormat.getNumberInstance(new Locale("pt", "BR"));
+    private NumberFormat currencyFormat;
+    private NumberFormat quantityFormat;
+
+    public TelaItensOrcamentoController() {
+        // Configurar formatação com 4 casas decimais
+        currencyFormat = NumberFormat.getCurrencyInstance(new Locale("pt", "BR"));
+        currencyFormat.setMinimumFractionDigits(4);
+        currencyFormat.setMaximumFractionDigits(4);
+
+        quantityFormat = NumberFormat.getNumberInstance(new Locale("pt", "BR"));
+        quantityFormat.setMinimumFractionDigits(4);
+        quantityFormat.setMaximumFractionDigits(4);
+    }
 
     // Dados
     private Long orcamentoId;
@@ -55,6 +66,17 @@ public class TelaItensOrcamentoController {
      */
     @FXML
     private void initialize() {
+        // Primeiro declarar e inicializar as variáveis temporárias
+        NumberFormat currencyFormatTemp = NumberFormat.getCurrencyInstance(new Locale("pt", "BR"));
+        currencyFormatTemp.setMinimumFractionDigits(4);
+        currencyFormatTemp.setMaximumFractionDigits(4);
+
+        NumberFormat quantityFormatTemp = NumberFormat.getNumberInstance(new Locale("pt", "BR"));
+        quantityFormatTemp.setMinimumFractionDigits(4);
+        quantityFormatTemp.setMaximumFractionDigits(4);
+
+        this.currencyFormat = currencyFormatTemp;
+        this.quantityFormat = quantityFormatTemp;
 
         configurarColunas();
         configurarTabela();

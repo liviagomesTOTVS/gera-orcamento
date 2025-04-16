@@ -28,6 +28,7 @@ import org.example.orcamentototvsjakarta.util.JPAUtil;
 import jakarta.persistence.EntityManager;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
@@ -207,6 +208,8 @@ public class TelaTributacaoController {
 
             // Extrair dados dos parâmetros
             OrcamentoParams params = criarParametrosOrcamento();
+            params.setPercentual(parametrosModel.getPercentual());
+
 
             // Obter tributações e departamentos selecionados
             List<Short> tributacoesSelecionadas = getTributacoesSelecionadas();
@@ -315,7 +318,8 @@ public class TelaTributacaoController {
                         tributacoesSelecionadas,
                         params.getValorMaximo().intValue(),
                         offset,
-                        pageSize
+                        pageSize,
+                        params  // Adicionar o parâmetro OrcamentoParams aqui
                 );
 
                 for (Object[] row : produtosPage) {
@@ -418,15 +422,23 @@ public class TelaTributacaoController {
             params.setCodcli(codcli);
             params.setCodatv1(codativ);
             params.setCodcob(cobranca);
-            params.setCodplpag((short) planoPagamento);
+            params.setCodplpag(planoPagamento);
             params.setCodusur((short) rca);
             params.setCodsupervisor((short) supervisor);
             params.setCodfilial(Integer.valueOf(filialCode));
 
 
-            params.setValorMaximo(valormax);
+            params.setValorMaximo(BigDecimal.valueOf(valormax));
             params.setTipoPreco(tipoPreco.toUpperCase());
             params.setNumprevenda("0");
+
+            params.setBoletoSelecionado(parametrosModel.isBoletoSelecionado());
+            params.setPixSelecionado(parametrosModel.isPixSelecionado());
+            params.setCartaoSelecionado(parametrosModel.isCartaoSelecionado());
+
+            LOGGER.info("Tipos de venda selecionados - Boleto: " + params.isBoletoSelecionado() +
+                    ", Pix: " + params.isPixSelecionado() +
+                    ", Cartão: " + params.isCartaoSelecionado());
 
             return params;
         } catch (Exception e) {

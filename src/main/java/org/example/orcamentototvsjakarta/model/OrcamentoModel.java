@@ -1,5 +1,8 @@
 package org.example.orcamentototvsjakarta.model;
 
+import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleObjectProperty;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
@@ -9,7 +12,7 @@ public class OrcamentoModel {
     private BigDecimal vltotal;
     private Integer codcli;
     private Short codusur;
-    private BigDecimal vldesconto;
+    private ObjectProperty<BigDecimal> vldesconto = new SimpleObjectProperty<>();
 
 
     public OrcamentoModel(Long id, LocalDate data, BigDecimal vltotal, Integer codcli, Short codusur, BigDecimal vldesconto) {
@@ -18,7 +21,7 @@ public class OrcamentoModel {
         this.vltotal = vltotal;
         this.codcli = codcli;
         this.codusur = codusur;
-        this.vldesconto = vldesconto;
+        this.vldesconto.set(vldesconto);
     }
 
     // Getters e setters
@@ -62,9 +65,17 @@ public class OrcamentoModel {
         this.codusur = codusur;
     }
 
-    public BigDecimal getVldesconto() {
+    // Getter para JavaFX property
+    public ObjectProperty<BigDecimal> vldescontoProperty() {
         return vldesconto;
     }
 
-}
+    // Getter e setter convencionais
+    public BigDecimal getVldesconto() {
+        return vldesconto.get();
+    }
 
+    public void setVldesconto(BigDecimal vldesconto) {
+        this.vldesconto.set(vldesconto);
+    }
+}

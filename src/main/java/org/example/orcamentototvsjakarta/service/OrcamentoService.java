@@ -11,15 +11,13 @@ import org.example.orcamentototvsjakarta.util.JPAUtil;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
+
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.logging.Level;
+
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -61,6 +59,10 @@ public class OrcamentoService {
             // Calcular total para retorno
             BigDecimal total = calcularTotal(em, proxNumOrca);
 
+            // Calcular e atualizar o valor do desconto baseado no percentual
+            BigDecimal valorDesconto = calcularValorDesconto(em, proxNumOrca, params.getTipoPreco(), params.getPercentual());
+            atualizarDescontoOrcamento(em, proxNumOrca, valorDesconto);
+
             // Confirmar transação
             em.getTransaction().commit();
 
@@ -70,18 +72,86 @@ public class OrcamentoService {
                     total,
                     params.getCodcli(),
                     params.getCodusur(),
-                    BigDecimal.ZERO
+                    valorDesconto  // Passando o valor do desconto calculado
             );
         } catch (Exception e) {
             if (em != null && em.getTransaction().isActive()) {
                 em.getTransaction().rollback();
             }
-            LOGGER.log(Level.SEVERE, "Erro ao gerar orçamento", e);
+            //LOGGER.log(Level.SEVERE, "Erro ao gerar orçamento", e);
             throw new RuntimeException("Erro ao gerar orçamento: " + e.getMessage(), e);
         } finally {
             if (em != null) {
                 em.close();
             }
+        }
+    }
+
+    /**
+     * Calcula o valor do desconto ou acréscimo aplicado ao orçamento
+     */
+    // Adicione estas linhas no método calcularValorDesconto() para depuração
+    private BigDecimal calcularValorDesconto(EntityManager em, BigDecimal numOrca, String tipoPreco, Double percentual) {
+        try {
+            // Log para diagnóstico
+            //LOGGER.info("=== INÍCIO DO CÁLCULO DE DESCONTO ===");
+            //LOGGER.info("Calculando desconto para orçamento " + numOrca + " com percentual " + percentual + " e tipo preço " + tipoPreco);
+
+            if (percentual == null || percentual == 0.0) {
+                //LOGGER.info("Percentual nulo ou zero. Retornando zero para desconto.");
+                return BigDecimal.ZERO;
+            }
+
+            // Para preço de custo (acréscimo)
+            if ("C".equalsIgnoreCase(tipoPreco)) {
+                // Buscar a soma dos custos (usando vlcustofin em vez de ptabela)
+                Query query = em.createNativeQuery("SELECT NVL(SUM(QT * VLCUSTOFIN), 0) FROM PCORCAVENDAI WHERE NUMORCA = ?1");
+                query.setParameter(1, numOrca);
+                BigDecimal valorCusto = getBigDecimal(query.getSingleResult());
+                //LOGGER.info("Valor custo calculado: " + valorCusto);
+
+                // Calcular o acréscimo aplicado
+                BigDecimal fator = BigDecimal.valueOf(percentual).divide(BigDecimal.valueOf(100), 6, RoundingMode.HALF_UP);
+                BigDecimal resultado = valorCusto.multiply(fator).setScale(4, RoundingMode.HALF_UP);
+                //LOGGER.info("Acréscimo calculado: " + resultado);
+
+                // Como é acréscimo, retornamos o valor positivo
+                return resultado;
+            }
+            // Para preço de venda (desconto)
+            else {
+                // Buscar a soma dos preços de tabela
+                Query query = em.createNativeQuery("SELECT NVL(SUM(QT * PTABELA), 0) FROM PCORCAVENDAI WHERE NUMORCA = ?1");
+                query.setParameter(1, numOrca);
+                BigDecimal valorTabela = getBigDecimal(query.getSingleResult());
+                //LOGGER.info("Valor tabela calculado: " + valorTabela);
+
+                // Buscar a soma dos preços de venda
+                query = em.createNativeQuery("SELECT NVL(SUM(QT * PVENDA), 0) FROM PCORCAVENDAI WHERE NUMORCA = ?1");
+                query.setParameter(1, numOrca);
+                BigDecimal valorVenda = getBigDecimal(query.getSingleResult());
+                //LOGGER.info("Valor venda calculado: " + valorVenda);
+
+                // O desconto é a diferença entre o valor de tabela e o valor de venda
+                BigDecimal resultado = valorTabela.subtract(valorVenda).setScale(4, RoundingMode.HALF_UP);
+                //LOGGER.info("Desconto calculado (diferença entre tabela e venda): " + resultado);
+
+                // VERIFICAÇÃO IMPORTANTE! Se o resultado for zero ou negativo, calcular o desconto diretamente
+                if (resultado.compareTo(BigDecimal.ZERO) <= 0) {
+                    //LOGGER.info("Diferença entre tabela e venda é zero ou negativa. Calculando percentual diretamente.");
+                    BigDecimal descontoPercentual = valorTabela.multiply(
+                            BigDecimal.valueOf(percentual).divide(BigDecimal.valueOf(100), 6, RoundingMode.HALF_UP)
+                    ).setScale(4, RoundingMode.HALF_UP);
+                    //LOGGER.info("Desconto calculado diretamente do percentual: " + descontoPercentual);
+                    return descontoPercentual;
+                }
+
+                //LOGGER.info("=== FIM DO CÁLCULO DE DESCONTO ===");
+                return resultado;
+            }
+        } catch (Exception e) {
+            //LOGGER.log(Level.SEVERE, "Erro ao calcular valor do desconto", e);
+            return BigDecimal.ZERO;
         }
     }
 
@@ -122,7 +192,7 @@ public class OrcamentoService {
                 for (ProdutoDTO produto : produtosParaProcessar) {
                     // Verificações de validação do produto
                     if (produto.getQtEstoque() <= 0) {
-                        LOGGER.info("Item CODPROD=" + produto.getCodProd() + " com quantidade zero ou negativa. Pulando item.");
+                        //LOGGER.info("Item CODPROD=" + produto.getCodProd() + " com quantidade zero ou negativa. Pulando item.");
                         produtosProcessados.add(produto);
                         continue;
                     }
@@ -133,14 +203,14 @@ public class OrcamentoService {
 
                     // Validar valor do item
                     if (valorItem.compareTo(BigDecimal.ZERO) <= 0) {
-                        LOGGER.info("Item CODPROD=" + produto.getCodProd() + " geraria valor negativo ou zero. Pulando item.");
+                        //LOGGER.info("Item CODPROD=" + produto.getCodProd() + " geraria valor negativo ou zero. Pulando item.");
                         produtosProcessados.add(produto);
                         continue;
                     }
 
                     // Verificar se o item sozinho excede o valor máximo
                     if (valorItem.compareTo(valorMaximoOrcamento) > 0) {
-                        LOGGER.info("Item CODPROD=" + produto.getCodProd() + " excede o limite individual de valor. Pulando item.");
+                        //LOGGER.info("Item CODPROD=" + produto.getCodProd() + " excede o limite individual de valor. Pulando item.");
                         produtosProcessados.add(produto);
                         continue;
                     }
@@ -187,7 +257,9 @@ public class OrcamentoService {
                             precoVenda,
                             produto.getPTabela(),
                             numseqItem,
-                            produto.getCodSt()
+                            produto.getCodSt(),
+                            produto.getVlCustoFin(),
+                            produto.getVlCustoReal()
                     );
 
                     itensBatch.add(item);
@@ -213,7 +285,7 @@ public class OrcamentoService {
                 // Se não conseguimos processar nenhum produto neste ciclo, mas ainda há produtos na lista,
                 // significa que estamos com itens difíceis que não cabem em nenhum orçamento - vamos processá-los individualmente
                 if (produtosProcessados.isEmpty() && !produtosParaProcessar.isEmpty()) {
-                    LOGGER.warning("Há " + produtosParaProcessar.size() + " itens que não puderam ser agrupados. Processando individualmente.");
+                    //LOGGER.warning("Há " + produtosParaProcessar.size() + " itens que não puderam ser agrupados. Processando individualmente.");
 
                     // Processar cada item individualmente (um orçamento por item)
                     for (ProdutoDTO produto : produtosParaProcessar) {
@@ -245,7 +317,9 @@ public class OrcamentoService {
                                 precoVenda,
                                 produto.getPTabela(),
                                 1,
-                                produto.getCodSt()
+                                produto.getCodSt(),
+                                produto.getVlCustoFin(),
+                                produto.getVlCustoReal()
                         );
 
                         List<Object[]> itemUnico = new ArrayList<>();
@@ -253,7 +327,7 @@ public class OrcamentoService {
                         inserirBatchItens(em, itemUnico);
                         atualizarTotaisOrcamento(em, currentNumOrca);
 
-                        LOGGER.info("Item difícil processado individualmente: CODPROD=" + produto.getCodProd());
+                        //LOGGER.info("Item difícil processado individualmente: CODPROD=" + produto.getCodProd());
                     }
 
                     // Limpar a lista após processar todos individualmente
@@ -270,14 +344,22 @@ public class OrcamentoService {
 
                     // ADICIONAR ESTA VERIFICAÇÃO:
                     if (total.compareTo(valorMaximoOrcamento) > 0) {
-                        LOGGER.warning("Orçamento " + numOrca + " com valor total " + total +
-                                " excede o limite máximo de " + valorMaximoOrcamento + ". Removendo orçamento.");
+                        //LOGGER.warning("Orçamento " + numOrca + " com valor total " + total +
+                               // " excede o limite máximo de " + valorMaximoOrcamento + ". Removendo orçamento.");
                         removerOrcamentoSemItens(em, numOrca);
                         continue;
                     }
 
+                    // Calcular e definir o valor do desconto
+                    BigDecimal valorDesconto = calcularValorDesconto(em, numOrca, params.getTipoPreco(), params.getPercentual());
+
                     orcamento.setVltotal(total);
+                    orcamento.setVldesconto(valorDesconto); // Definir o valor do desconto
+                    atualizarDescontoOrcamento(em, numOrca, valorDesconto);
+
                     orcamentosValidos.add(orcamento);
+
+
                 } else {
                     removerOrcamentoSemItens(em, numOrca);
                 }
@@ -290,7 +372,7 @@ public class OrcamentoService {
             if (em != null && em.getTransaction().isActive()) {
                 em.getTransaction().rollback();
             }
-            LOGGER.log(Level.SEVERE, "Erro ao processar orçamentos", e);
+            //LOGGER.log(Level.SEVERE, "Erro ao processar orçamentos", e);
             throw new RuntimeException("Erro ao processar orçamentos: " + e.getMessage(), e);
         } finally {
             if (em != null) {
@@ -323,7 +405,7 @@ public class OrcamentoService {
                 throw new RuntimeException("Tipo de resultado inesperado: " + result.getClass());
             }
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Erro ao obter próximo número de orçamento", e);
+            //LOGGER.log(Level.SEVERE, "Erro ao obter próximo número de orçamento", e);
             throw new RuntimeException("Erro ao obter próximo número de orçamento: " + e.getMessage(), e);
         }
     }
@@ -338,7 +420,7 @@ public class OrcamentoService {
             updateQuery.setParameter(1, codusur);
             updateQuery.executeUpdate();
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Erro ao atualizar próximo número", e);
+            //LOGGER.log(Level.SEVERE, "Erro ao atualizar próximo número", e);
             throw new RuntimeException("Erro ao atualizar próximo número: " + e.getMessage(), e);
         }
     }
@@ -360,7 +442,7 @@ public class OrcamentoService {
                     getInt(result[4])   // CODATV1
             );
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Erro ao obter cliente", e);
+            //LOGGER.log(Level.SEVERE, "Erro ao obter cliente", e);
             throw new RuntimeException("Erro ao obter cliente: " + e.getMessage(), e);
         }
     }
@@ -405,7 +487,7 @@ public class OrcamentoService {
 
             query.executeUpdate();
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Erro ao inserir cabeçalho", e);
+            //LOGGER.log(Level.SEVERE, "Erro ao inserir cabeçalho", e);
             throw new RuntimeException("Erro ao inserir cabeçalho: " + e.getMessage(), e);
         }
     }
@@ -413,6 +495,7 @@ public class OrcamentoService {
     /**
      * Insere itens de orçamento com base nos parâmetros
      */
+
     private void inserirItensOrcamento(EntityManager em, BigDecimal proxNumOrca, OrcamentoParams params) {
         try {
             // Usar paginação para lidar com grandes volumes de produtos
@@ -430,7 +513,7 @@ public class OrcamentoService {
             Short codusur = params.getCodusur();
 
             do {
-                produtos = carregarProdutosPaginados(em, offset, pageSize);
+                produtos = carregarProdutosPaginados(em, offset, pageSize, params);
                 offset += pageSize;
 
                 for (ProdutoDTO produto : produtos) {
@@ -440,6 +523,8 @@ public class OrcamentoService {
                     BigDecimal pUnit = produto.getPUnit();
                     BigDecimal pTabela = produto.getPTabela();
                     Integer codSt = produto.getCodSt();
+                    BigDecimal vlCustoFin = produto.getVlCustoFin();
+                    BigDecimal vlCustoReal = produto.getVlCustoReal();
 
                     if (qtEstoque <= 0) continue;
 
@@ -451,7 +536,7 @@ public class OrcamentoService {
                     valorTotalOrcamento = valorTotalOrcamento.add(valorItem);
 
                     itensParaInserir.add(construirItem(proxNumOrca, codcli, codProd, codusur,
-                            qtEstoque, qtUnitEmb, precoVenda, pTabela, numseqItem, codSt));
+                            qtEstoque, qtUnitEmb, precoVenda, pTabela, numseqItem, codSt,vlCustoFin, vlCustoReal));
                     numseqItem++;
 
                     // Inserir em lotes para evitar sobrecarga de memória
@@ -468,10 +553,11 @@ public class OrcamentoService {
                 atualizarInformacoesAdicionaisItens(em, proxNumOrca, params.getCodfilial());
             }
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Erro ao inserir itens do orçamento", e);
+            //LOGGER.log(Level.SEVERE, "Erro ao inserir itens do orçamento", e);
             throw new RuntimeException("Erro ao inserir itens do orçamento: " + e.getMessage(), e);
         }
     }
+
 
     /**
      * Atualiza informações adicionais dos itens
@@ -500,7 +586,7 @@ public class OrcamentoService {
             query.setParameter(2, numOrca);
             query.executeUpdate();
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Erro ao atualizar informações adicionais dos itens", e);
+            //LOGGER.log(Level.SEVERE, "Erro ao atualizar informações adicionais dos itens", e);
             throw new RuntimeException("Erro ao atualizar informações adicionais dos itens: " + e.getMessage(), e);
         }
     }
@@ -529,8 +615,31 @@ public class OrcamentoService {
             query.setParameter(1, numOrca);
             query.executeUpdate();
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Erro ao atualizar totais do orçamento", e);
+            //LOGGER.log(Level.SEVERE, "Erro ao atualizar totais do orçamento", e);
             throw new RuntimeException("Erro ao atualizar totais do orçamento: " + e.getMessage(), e);
+        }
+    }
+
+    private void atualizarDescontoOrcamento(EntityManager em, BigDecimal numOrca, BigDecimal valorDesconto) {
+        try {
+            // Log para diagnóstico
+            //LOGGER.info("Atualizando desconto do orçamento " + numOrca + " com valor " + valorDesconto);
+
+            Query query = em.createNativeQuery(
+                    "UPDATE PCORCAVENDAC SET VLDESCONTO = ?2 WHERE NUMORCA = ?1");
+            query.setParameter(1, numOrca);
+            query.setParameter(2, valorDesconto);
+            int rowsUpdated = query.executeUpdate();
+
+            // Verificar se a atualização foi bem sucedida
+            if (rowsUpdated == 0) {
+                //LOGGER.warning("Nenhuma linha atualizada ao definir desconto para o orçamento " + numOrca);
+            } else {
+                //LOGGER.info("Desconto atualizado com sucesso para o orçamento " + numOrca);
+            }
+        } catch (Exception e) {
+            //LOGGER.log(Level.SEVERE, "Erro ao atualizar desconto do orçamento", e);
+            throw new RuntimeException("Erro ao atualizar desconto do orçamento: " + e.getMessage(), e);
         }
     }
 
@@ -539,8 +648,9 @@ public class OrcamentoService {
      */
     private Object[] construirItem(BigDecimal numOrca, Integer codcli, Integer codProd, Short codusur,
                                    Double qtEstoque, Double qtUnitEmb, BigDecimal precoVenda,
-                                   BigDecimal pTabela, int numseqItem, Integer codSt) {
-        return new Object[]{numOrca, codcli, codProd, codusur, qtEstoque, qtUnitEmb, precoVenda, pTabela, numseqItem, codSt};
+                                   BigDecimal pTabela, int numseqItem, Integer codSt,
+                                   BigDecimal vlCustoFin, BigDecimal vlCustoReal) {
+        return new Object[]{numOrca, codcli, codProd, codusur, qtEstoque, qtUnitEmb, precoVenda, pTabela, numseqItem, codSt, vlCustoFin, vlCustoReal};
     }
 
     /**
@@ -553,7 +663,7 @@ public class OrcamentoService {
             Long count = ((Number) query.getSingleResult()).longValue();
             return count > 0;
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Erro ao verificar se orçamento tem itens", e);
+            //LOGGER.log(Level.SEVERE, "Erro ao verificar se orçamento tem itens", e);
             throw new RuntimeException("Erro ao verificar se orçamento tem itens: " + e.getMessage(), e);
         }
     }
@@ -567,7 +677,7 @@ public class OrcamentoService {
             query.setParameter(1, numOrca);
             query.executeUpdate();
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Erro ao remover orçamento sem itens", e);
+            //LOGGER.log(Level.SEVERE, "Erro ao remover orçamento sem itens", e);
             throw new RuntimeException("Erro ao remover orçamento sem itens: " + e.getMessage(), e);
         }
     }
@@ -591,11 +701,11 @@ public class OrcamentoService {
             } else if (result instanceof Number) {
                 return BigDecimal.valueOf(((Number) result).doubleValue());
             } else {
-                LOGGER.warning("Tipo inesperado retornado da consulta: " + result.getClass());
+                //LOGGER.warning("Tipo inesperado retornado da consulta: " + result.getClass());
                 return BigDecimal.ZERO;
             }
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Erro ao calcular total do orçamento", e);
+            //LOGGER.log(Level.SEVERE, "Erro ao calcular total do orçamento", e);
             throw new RuntimeException("Erro ao calcular total do orçamento: " + e.getMessage(), e);
         }
     }
@@ -603,9 +713,12 @@ public class OrcamentoService {
     /**
      * Carrega produtos paginados para melhor performance com grandes volumes
      */
-    private List<ProdutoDTO> carregarProdutosPaginados(EntityManager em, int offset, int pageSize) {
+    private List<ProdutoDTO> carregarProdutosPaginados(EntityManager em, int offset, int pageSize, OrcamentoParams parametros) {
         try {
-            Query query = em.createNativeQuery(
+            // Construir a consulta SQL base
+            LOGGER.info("DENTRO DE CARREGARPRODUTOSPAGINADOS");
+            System.out.println("parametros é null? " + (parametros == null));
+            StringBuilder sqlBuilder = new StringBuilder(
                     "SELECT p.CODPROD, COALESCE(vm.QTUNIT, p.QTUNIT) as QTUNITEMB, " +
                             "CASE WHEN (NVL(e.QTEST, 0) - NVL(e.QTESTGER, 0)) - " +
                             "     NVL((SELECT SUM(i.QT) FROM PCORCAVENDAI i " +
@@ -635,26 +748,120 @@ public class OrcamentoService {
                             "LEFT JOIN VIEWMENOREMBALAGEM vm ON e.CODPROD = vm.CODPROD AND e.CODFILIAL = vm.CODFILIAL " +
                             "LEFT JOIN PCTABPR tb ON p.CODPROD = tb.CODPROD " +
                             "LEFT JOIN PCTRIBUT tr ON tb.CODST = tr.CODST " +
-                            "WHERE e.QTEST > 0 " +
-                            "ORDER BY p.CODPROD " +
-                            "OFFSET ?1 ROWS FETCH NEXT ?2 ROWS ONLY");
+                            "WHERE e.QTEST > 0 ");
 
+            // Aplicar filtro de tipo de venda se necessário
+            if (parametros != null && parametros.temFiltroTipoVendaAtivo()) {
+                // Não aplicar filtro se todos estiverem selecionados ou todos desativados
+                boolean boleto = parametros.isBoletoSelecionado();
+                boolean pix = parametros.isPixSelecionado();
+                boolean cartao = parametros.isCartaoSelecionado();
+                LOGGER.info("Estado dos filtros: Boleto=" + boleto + ", Pix=" + pix + ", Cartão=" + cartao);
+
+
+                if (!((boleto && pix && cartao) || (!boleto && !pix && !cartao))) {
+                    sqlBuilder.append(" AND p.CODPROD IN (");
+
+                    List<String> subconsultas = new ArrayList<>();
+
+                    if (boleto) {
+                        LOGGER.info("Adicionando filtro para BOLETO");
+
+                        subconsultas.add("SELECT DISTINCT p2.codprod FROM pcnfsaid v " +
+                                "INNER JOIN pccob c ON v.codcob = c.codcob " +
+                                "INNER JOIN pcmov m ON m.numnota = v.numnota " +
+                                "INNER JOIN pcprodut p2 ON p2.codprod = m.codprod " +
+                                "WHERE c.boleto = 'S'");
+                    }
+
+                    if (pix) {
+                        LOGGER.info("Adicionando filtro para PIX");
+
+                        subconsultas.add("SELECT DISTINCT p2.codprod FROM pcnfsaid v " +
+                                "INNER JOIN pccob c ON v.codcob = c.codcob " +
+                                "INNER JOIN pcmov m ON m.numnota = v.numnota " +
+                                "INNER JOIN pcprodut p2 ON p2.codprod = m.codprod " +
+                                "WHERE c.carteirapix = 'S' OR c.bolepix = 'S'");
+                    }
+
+                    if (cartao) {
+                        LOGGER.info("Adicionando filtro para CARTÃO");
+
+                        subconsultas.add("SELECT DISTINCT p2.codprod FROM pcnfsaid v " +
+                                "INNER JOIN pccob c ON v.codcob = c.codcob " +
+                                "INNER JOIN pcmov m ON m.numnota = v.numnota " +
+                                "INNER JOIN pcprodut p2 ON p2.codprod = m.codprod " +
+                                "WHERE c.cartao = 'S'");
+                    }
+
+                    sqlBuilder.append(String.join(" UNION ", subconsultas));
+                    sqlBuilder.append(")");
+                }
+            }else{
+                LOGGER.info("Nenhum filtro de tipo de venda ativo ou parâmetros nulos");
+            }
+
+            // Adicionar ordenação e paginação
+            sqlBuilder.append(" ORDER BY p.CODPROD OFFSET ?1 ROWS FETCH NEXT ?2 ROWS ONLY");
+
+            // Criar e executar a consulta
+            Query query = em.createNativeQuery(sqlBuilder.toString());
             query.setParameter(1, offset);
             query.setParameter(2, pageSize);
 
+            // Processar os resultados
             List<ProdutoDTO> produtos = new ArrayList<>();
             List<Object[]> resultList = query.getResultList();
 
+            // Parte da lógica onde cria o objeto ProdutoDTO
             for (Object[] row : resultList) {
                 ProdutoDTO produto = new ProdutoDTO();
                 produto.setCodProd(getInt(row[0]));
                 produto.setQtUnitEmb(getDouble(row[1]));
                 produto.setQtEstoque(getDouble(row[2]));
-                produto.setVlCustoFin(getBigDecimal(row[3]));
-                produto.setVlCustoReal(getBigDecimal(row[4]));
+
+                // Obter valores iniciais
+                BigDecimal custoFin = getBigDecimal(row[3]);
+                BigDecimal custoReal = getBigDecimal(row[4]);
+                BigDecimal pUnit = getBigDecimal(row[6]);
+                BigDecimal pTabela = getBigDecimal(row[7]);
+
+                // Lógica de verificação cruzada para preço e custo
+                if (custoFin.compareTo(BigDecimal.ZERO) <= 0) {
+                    // Se o custo for zero, usar o preço de venda ou tabela como referência
+                    if (pTabela.compareTo(BigDecimal.ZERO) > 0) {
+                        custoFin = pTabela;
+                    } else if (pUnit.compareTo(BigDecimal.ZERO) > 0) {
+                        custoFin = pUnit;
+                    } else {
+                        custoFin = BigDecimal.valueOf(0.01); // Valor mínimo como último recurso
+                    }
+                }
+
+                if (custoReal.compareTo(BigDecimal.ZERO) <= 0) {
+                    custoReal = custoFin; // Usar custo financeiro como referência
+                }
+
+                // Se o preço de tabela for zero, usar o custo como referência
+                if (pTabela.compareTo(BigDecimal.ZERO) <= 0) {
+                    if (custoFin.compareTo(BigDecimal.ZERO) > 0) {
+                        // Aplicar uma margem padrão sobre o custo (ex: 30%)
+                        pTabela = custoFin.multiply(BigDecimal.valueOf(1.3)).setScale(4, RoundingMode.HALF_UP);
+                    } else {
+                        pTabela = BigDecimal.valueOf(0.01); // Valor mínimo como último recurso
+                    }
+                }
+
+                // Se o preço unitário for zero, usar o custo como referência
+                if (pUnit.compareTo(BigDecimal.ZERO) <= 0) {
+                    pUnit = custoFin;
+                }
+
+                produto.setVlCustoFin(custoFin);
+                produto.setVlCustoReal(custoReal);
                 produto.setPesoBruto(getDouble(row[5]));
-                produto.setPUnit(getBigDecimal(row[6]));
-                produto.setPTabela(getBigDecimal(row[7]));
+                produto.setPUnit(pUnit);
+                produto.setPTabela(pTabela);
                 produto.setCodSt(getInt(row[8]));
                 produto.setCodAuxiliar(getLong(row[9]));
                 produto.setQtUnit(getDouble(row[10]));
@@ -664,7 +871,7 @@ public class OrcamentoService {
 
             return produtos;
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Erro ao carregar produtos paginados", e);
+            //LOGGER.log(Level.SEVERE, "Erro ao carregar produtos paginados", e);
             throw new RuntimeException("Erro ao carregar produtos paginados: " + e.getMessage(), e);
         }
     }
@@ -676,7 +883,8 @@ public class OrcamentoService {
         List<ProdutoDTO> produtos = new ArrayList<>();
         if (mensagem == null || mensagem.trim().isEmpty()) {
             return produtos;
-        }try {
+        }
+        try {
             String[] produtosArray = mensagem.split(";");
             Pattern pattern = Pattern.compile("([^|]+)\\|([^|]+)\\|([^|]+)\\|([^|]+)\\|([^|]+)\\|([^|]+)");
 
@@ -691,16 +899,43 @@ public class OrcamentoService {
                         produto.setPUnit(BigDecimal.valueOf(parseDouble(matcher.group(4))));
                         produto.setPTabela(BigDecimal.valueOf(parseDouble(matcher.group(5))));
                         produto.setCodSt(Integer.parseInt(matcher.group(6).trim()));
+
+                        BigDecimal pUnit = BigDecimal.valueOf(parseDouble(matcher.group(4)));
+                        BigDecimal pTabela = BigDecimal.valueOf(parseDouble(matcher.group(5)));
+                        produto.setCodSt(Integer.parseInt(matcher.group(6).trim()));
+
+                        BigDecimal custoFin;
+                        if (pUnit.compareTo(BigDecimal.ZERO) <= 0) {
+                            // Se o custo for zero, usar o preço de tabela
+                            if (pTabela.compareTo(BigDecimal.ZERO) > 0) {
+                                custoFin = pTabela;
+                            } else {
+                                custoFin = BigDecimal.valueOf(0.01);
+                            }
+                        } else {
+                            custoFin = pUnit;
+                        }
+
+                        if (pTabela.compareTo(BigDecimal.ZERO) <= 0) {
+                            pTabela = custoFin.multiply(BigDecimal.valueOf(1.3)).setScale(4, RoundingMode.HALF_UP);
+                        }
+
+                        produto.setPUnit(pUnit);
+                        produto.setPTabela(pTabela);
+                        produto.setVlCustoFin(custoFin);
+                        produto.setVlCustoReal(custoFin);
+
+
                         produtos.add(produto);
                     } catch (NumberFormatException e) {
-                        LOGGER.log(Level.WARNING, "Erro ao converter valores para o produto: " + produtoStr, e);
+                        //LOGGER.log(Level.WARNING, "Erro ao converter valores para o produto: " + produtoStr, e);
                     }
                 } else {
-                    LOGGER.warning("Formato inválido de produto: " + produtoStr);
+                    //LOGGER.warning("Formato inválido de produto: " + produtoStr);
                 }
             }
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Erro ao analisar mensagem de produtos", e);
+            //LOGGER.log(Level.SEVERE, "Erro ao analisar mensagem de produtos", e);
             throw new RuntimeException("Erro ao analisar mensagem de produtos: " + e.getMessage(), e);
         }
 
@@ -719,7 +954,7 @@ public class OrcamentoService {
         try {
             return Double.parseDouble(value.trim());
         } catch (NumberFormatException e) {
-            LOGGER.warning("Erro ao converter para double: " + value);
+            //LOGGER.warning("Erro ao converter para double: " + value);
             return 0.0;
         }
     }
@@ -736,21 +971,29 @@ public class OrcamentoService {
      * Calcula o preço de venda com base no tipo de preço
      */
     private BigDecimal calcularPrecoVenda(String tipoPreco, BigDecimal pUnit, BigDecimal pTabela, Double percentual) {
+        // Log para diagnóstico
+        //LOGGER.info("Calculando preço de venda com: tipoPreco=" + tipoPreco +
+               // ", pUnit=" + pUnit + ", pTabela=" + pTabela + ", percentual=" + percentual);
+
         BigDecimal result;
 
         if ("C".equalsIgnoreCase(tipoPreco)) {
             // Para preço de custo, aplicar acréscimo
             result = pUnit != null ? pUnit : BigDecimal.ZERO;
             if (percentual != null && percentual > 0) {
-                BigDecimal fator = BigDecimal.ONE.add(BigDecimal.valueOf(percentual).divide(BigDecimal.valueOf(100), 6, RoundingMode.HALF_UP));
-                result = result.multiply(fator).setScale(2, RoundingMode.HALF_UP);
+                BigDecimal fator = BigDecimal.ONE.add(BigDecimal.valueOf(percentual)
+                        .divide(BigDecimal.valueOf(100), 6, RoundingMode.HALF_UP));
+                result = result.multiply(fator).setScale(4, RoundingMode.HALF_UP);
+                //LOGGER.info("Acréscimo aplicado. Novo valor: " + result);
             }
         } else {
             // Para preço de venda (ou outro tipo), aplicar desconto
             result = (pTabela != null && pTabela.compareTo(BigDecimal.ZERO) > 0) ? pTabela : pUnit;
             if (percentual != null && percentual > 0) {
-                BigDecimal fator = BigDecimal.ONE.subtract(BigDecimal.valueOf(percentual).divide(BigDecimal.valueOf(100), 6, RoundingMode.HALF_UP));
-                result = result.multiply(fator).setScale(2, RoundingMode.HALF_UP);
+                BigDecimal fator = BigDecimal.ONE.subtract(BigDecimal.valueOf(percentual)
+                        .divide(BigDecimal.valueOf(100), 6, RoundingMode.HALF_UP));
+                result = result.multiply(fator).setScale(4, RoundingMode.HALF_UP);
+                //LOGGER.info("Desconto aplicado. Valor original: " + ((pTabela != null && pTabela.compareTo(BigDecimal.ZERO) > 0) ? pTabela : pUnit) + ", Percentual: " + percentual + "%, Novo valor: " + result);
             }
         }
 
@@ -801,6 +1044,39 @@ public class OrcamentoService {
                 BigDecimal pTabela = (BigDecimal) item[7];
                 Integer numseqItem = (Integer) item[8];
                 Integer codSt = (Integer) item[9];
+                BigDecimal vlCustoFin = (BigDecimal) item[10];
+                BigDecimal vlCustoReal = (BigDecimal) item[11];
+
+
+                // Verificação cruzada
+                if (vlCustoFin == null || vlCustoFin.compareTo(BigDecimal.ZERO) <= 0) {
+                    // Se preço de venda existir, usar como base para o custo
+                    if (precoVenda != null && precoVenda.compareTo(BigDecimal.ZERO) > 0) {
+                        vlCustoFin = precoVenda;
+                    } else if (pTabela != null && pTabela.compareTo(BigDecimal.ZERO) > 0) {
+                        vlCustoFin = pTabela;
+                    } else {
+                        vlCustoFin = BigDecimal.valueOf(0.01);
+                    }
+                }
+
+                if (vlCustoReal == null || vlCustoReal.compareTo(BigDecimal.ZERO) <= 0) {
+                    vlCustoReal = vlCustoFin; // Usar custo financeiro como referência
+                }
+
+                // Verificar preço de venda e tabela
+                if (precoVenda == null || precoVenda.compareTo(BigDecimal.ZERO) <= 0) {
+                    if (vlCustoFin.compareTo(BigDecimal.ZERO) > 0) {
+                        // Aplicar margem padrão se o preço for zero
+                        precoVenda = vlCustoFin.multiply(BigDecimal.valueOf(1.3)).setScale(4, RoundingMode.HALF_UP);
+                    } else {
+                        precoVenda = BigDecimal.valueOf(0.01);
+                    }
+                }
+
+                if (pTabela == null || pTabela.compareTo(BigDecimal.ZERO) <= 0) {
+                    pTabela = precoVenda;
+                }
 
                 // Usar query nativa com parâmetros nomeados
                 Query query = em.createNativeQuery(
@@ -808,7 +1084,8 @@ public class OrcamentoService {
                                 "NUMORCA, DATA, CODCLI, CODPROD, CODUSUR, QT, QTUNITEMB, ST, PVENDA, PTABELA, " +
                                 "PERDESC, POSICAO, NUMCAR, NUMSEQ, CODST, PORIGINAL, DTULTALTER, VLCUSTOFIN, " +
                                 "VLCUSTOREAL, PERCOM, BAIXADO) " +
-                                "VALUES (?1, SYSDATE, ?2, ?3, ?4, ?5, ?6, '0', ?7, ?8, 80, 'L', '0', ?9, ?10, ?8, SYSDATE, 0, 0, 0, 'N')");
+                                "VALUES (?1, SYSDATE, ?2, ?3, ?4, ?5, ?6, '0', ?7, ?8, 80, 'L', '0', ?9, ?10, ?8, SYSDATE, ?11, ?12, 0, 'N')"
+                );
 
                 query.setParameter(1, numOrca);
                 query.setParameter(2, codcli);
@@ -820,6 +1097,8 @@ public class OrcamentoService {
                 query.setParameter(8, pTabela);
                 query.setParameter(9, numseqItem);
                 query.setParameter(10, codSt);
+                query.setParameter(11, vlCustoFin);
+                query.setParameter(12, vlCustoReal);
 
                 query.executeUpdate();
 
@@ -834,7 +1113,7 @@ public class OrcamentoService {
             em.flush();
 
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Erro ao inserir itens do orçamento", e);
+            //LOGGER.log(Level.SEVERE, "Erro ao inserir itens do orçamento", e);
             throw new RuntimeException("Erro ao inserir itens do orçamento: " + e.getMessage(), e);
         }
     }
@@ -848,7 +1127,7 @@ public class OrcamentoService {
             Object result = query.getSingleResult();
             return result instanceof BigDecimal ? (BigDecimal) result : BigDecimal.valueOf(((Number) result).longValue());
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Erro ao obter sequência para pré-venda", e);
+            //LOGGER.log(Level.SEVERE, "Erro ao obter sequência para pré-venda", e);
             throw new RuntimeException("Erro ao obter sequência para pré-venda: " + e.getMessage(), e);
         }
     }
